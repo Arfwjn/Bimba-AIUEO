@@ -1,0 +1,10 @@
+# Disable PHP Script Execution in Uploads Directory
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|exe|pl|py|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Force Plain Serving for Uploaded Assets
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7
+RemoveType .php .phtml .php3 .php4 .php5 .php7
+php_flag engine off

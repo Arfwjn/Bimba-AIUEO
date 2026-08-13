@@ -1,0 +1,21 @@
+# Apache Production Configuration for biMBA AIUEO Admin System
+
+# Disable Directory Browsing
+Options -Indexes
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Protect Sensitive Files
+<FilesMatch "^\.env|schema\.sql|\.sqlite$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Default Index File
+DirectoryIndex index.php login.php
