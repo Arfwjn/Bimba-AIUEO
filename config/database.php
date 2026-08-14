@@ -1,7 +1,14 @@
 <?php
-// config/database.php
+/**
+ * Konfigurasi Database dan Pengelolaan Koneksi PDO
+ * 
+ * Mengatur koneksi ke database MySQL atau SQLite, serta menangani migrasi otomatis
+ * tabel dan kolom baru saat ada pembaruan fitur.
+ */
+
 require_once __DIR__ . '/app.php';
 
+// Definisi variabel koneksi database dari file konfigurasi environment
 if (!defined('DB_DRIVER')) define('DB_DRIVER', env('DB_DRIVER', 'mysql'));
 if (!defined('DB_HOST')) define('DB_HOST', env('DB_HOST', '127.0.0.1'));
 if (!defined('DB_PORT')) define('DB_PORT', env('DB_PORT', '3306'));
@@ -9,8 +16,11 @@ if (!defined('DB_NAME')) define('DB_NAME', env('DB_NAME', 'bimba_aiueo'));
 if (!defined('DB_USER')) define('DB_USER', env('DB_USER', 'root'));
 if (!defined('DB_PASS')) define('DB_PASS', env('DB_PASS', ''));
 
+// Mengambil objek koneksi PDO tunggal (pola singleton)
 function getDB() {
     static $pdo = null;
+
+    // Gunakan kembali koneksi yang sudah terbuka
     if ($pdo !== null) {
         return $pdo;
     }
@@ -18,12 +28,13 @@ function getDB() {
     if (DB_DRIVER === 'mysql') {
         try {
             $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            
             $pdo = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
             ]);
             
-            // Auto-migrate supplementary columns if missing in MySQL
+            // Periksa dan sesuaikan struktur tabel otomatis
             autoMigrateTables($pdo);
 
             return $pdo;
@@ -31,11 +42,11 @@ function getDB() {
             if (APP_DEBUG) {
                 die("MySQL Connection Error: " . $e->getMessage());
             } else {
-                die("Koneksi database MySQL gagal. Pastikan XAMPP/MySQL service sudah berjalan.");
+                die("Koneksi ke database MySQL gagal. Pastikan service MySQL pada XAMPP sudah berjalan.");
             }
         }
     } else {
-        // Fallback SQLite Database
+        // Mode cadangan menggunakan database SQLite
         $dbDir = __DIR__ . '/../database';
         if (!file_exists($dbDir)) {
             mkdir($dbDir, 0777, true);
@@ -62,8 +73,8 @@ function getDB() {
     }
 }
 
+// Tambahkan tabel atau kolom baru secara otomatis jika belum ada di database
 function autoMigrateTables($pdo) {
-    // Ensure settings table exists
     try {
         if (DB_DRIVER === 'mysql') {
             $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
@@ -78,42 +89,17 @@ function autoMigrateTables($pdo) {
         }
     } catch (Exception $e) {}
 
-    // Add status_aktif to karyawan if missing
-    try {
-        $pdo->exec("ALTER TABLE karyawan ADD status_aktif INT DEFAULT 1");
-    } catch (Exception $e) {}
-
-    // Add status_validasi to presensi if missing
-    try {
-        $pdo->exec("ALTER TABLE presensi ADD status_validasi VARCHAR(20) DEFAULT 'Valid'");
-    } catch (Exception $e) {}
-
-    // Add raw_payload to presensi if missing
-    try {
-        $pdo->exec("ALTER TABLE presensi ADD raw_payload TEXT NULL");
-    } catch (Exception $e) {}
-
-    // Add jam_keluar to presensi if missing
-    try {
-        $pdo->exec("ALTER TABLE presensi ADD jam_keluar TIME NULL");
-    } catch (Exception $e) {}
-
-    // Add kategori to petty_cash if missing
-    try {
-        $pdo->exec("ALTER TABLE petty_cash ADD kategori VARCHAR(50) DEFAULT 'Operasional Unit'");
-    } catch (Exception $e) {}
-
-    // Add saldo_setelah to petty_cash if missing
-    try {
-        $pdo->exec("ALTER TABLE petty_cash ADD saldo_setelah DECIMAL(15,2) DEFAULT 0");
-    } catch (Exception $e) {}
-
-    // Add bukti_file to petty_cash if missing
-    try {
-        $pdo->exec("ALTER TABLE petty_cash ADD bukti_file VARCHAR(255) NULL");
-    } catch (Exception $e) {}
+    // Tambah kolom opsional jika belum ada
+    try { $pdo->exec("ALTER TABLE karyawan ADD status_aktif INT DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE presensi ADD status_validasi VARCHAR(20) DEFAULT 'Valid'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE presensi ADD raw_payload TEXT NULL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE presensi ADD jam_keluar TIME NULL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE petty_cash ADD kategori VARCHAR(50) DEFAULT 'Operasional Unit'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE petty_cash ADD saldo_setelah DECIMAL(15,2) DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE petty_cash ADD bukti_file VARCHAR(255) NULL"); } catch (Exception $e) {}
 }
 
+// Ambil nilai konfigurasi sistem dari tabel settings
 function get_system_setting($key, $default = '') {
     try {
         $pdo = getDB();
@@ -127,6 +113,7 @@ function get_system_setting($key, $default = '') {
     return $default;
 }
 
+// Simpan atau perbarui nilai pengaturan ke tabel settings
 function save_system_setting($key, $value) {
     try {
         $pdo = getDB();
@@ -143,11 +130,13 @@ function save_system_setting($key, $value) {
     }
 }
 
+// Tutup koneksi database
 function closeDB() {
     $pdo = getDB();
     $pdo = null;
 }
 
+// Inisialisasi struktur tabel awal dan data sampel jika database baru dibuat
 function initDatabase($pdo) {
     $schemaFile = __DIR__ . '/../database/schema.sql';
     if (file_exists($schemaFile)) {
@@ -155,7 +144,7 @@ function initDatabase($pdo) {
         $pdo->exec($sql);
     }
 
-    // Seed default admin user if missing
+    // Buat akun admin awal jika belum ada (admin / admin123)
     $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM admin WHERE username = ?");
     $stmt->execute(['admin']);
     $res = $stmt->fetch();
@@ -166,7 +155,7 @@ function initDatabase($pdo) {
         $stmt->execute(['Administrator Unit', 'admin', $passHash]);
     }
 
-    // Seed default employees if missing
+    // Isi data sampel karyawan jika masih kosong
     $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM karyawan");
     $stmt->execute();
     $resEmp = $stmt->fetch();
@@ -184,7 +173,7 @@ function initDatabase($pdo) {
         }
     }
 
-    // Seed default petty cash initial balance if missing
+    // Isi data sampel transaksi kas kecil jika masih kosong
     $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM petty_cash");
     $stmt->execute();
     $resPc = $stmt->fetch();

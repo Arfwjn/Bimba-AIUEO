@@ -10,6 +10,7 @@ $pdo = getDB();
 $user = get_logged_user();
 $message = '';
 $error = '';
+$activeTab = 'tab-unit';
 
 // Process Backup Download
 if (isset($_GET['action']) && $_GET['action'] === 'download_backup') {
@@ -52,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'profile') {
+            $activeTab = 'tab-admin';
             $nama = trim($_POST['nama_lengkap'] ?? '');
             $oldPass = trim($_POST['old_password'] ?? '');
             $newPass = trim($_POST['new_password'] ?? '');
@@ -79,15 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'institution') {
+            $activeTab = trim($_POST['active_tab'] ?? 'tab-unit');
             save_system_setting('unit_name', trim($_POST['unit_name'] ?? ''));
             save_system_setting('unit_leader', trim($_POST['unit_leader'] ?? ''));
             save_system_setting('unit_location', trim($_POST['unit_location'] ?? ''));
             save_system_setting('unit_address', trim($_POST['unit_address'] ?? ''));
             save_system_setting('unit_phone', trim($_POST['unit_phone'] ?? ''));
             save_system_setting('unit_email', trim($_POST['unit_email'] ?? ''));
+            
+            $message = 'Pengaturan identitas lembaga berhasil diperbarui!';
+        } elseif ($action === 'schedule') {
+            $activeTab = 'tab-schedule';
+            save_system_setting('work_in_time', trim($_POST['work_in_time'] ?? '08:00'));
+            save_system_setting('work_in_late', trim($_POST['work_in_late'] ?? '08:15'));
+            save_system_setting('work_out_time', trim($_POST['work_out_time'] ?? '16:00'));
             save_system_setting('qr_hours', (string)intval($_POST['qr_hours'] ?? 12));
 
-            $message = 'Pengaturan identitas lembaga & Kop Surat laporan berhasil diperbarui!';
+            $message = 'Pengaturan Jadwal Jam Kerja Presensi berhasil diperbarui!';
         }
     }
 }
@@ -100,6 +110,11 @@ $unitAddressVal = get_system_setting('unit_address', 'Jl. Raya Kebanggan No. 12,
 $unitPhoneVal = get_system_setting('unit_phone', '(021) 555-8899');
 $unitEmailVal = get_system_setting('unit_email', 'info@bimba-kebanggan.sch.id');
 $qrHoursVal = get_system_setting('qr_hours', '12');
+
+// Work Hours Settings
+$workInTimeVal = get_system_setting('work_in_time', '08:00');
+$workInLateVal = get_system_setting('work_in_late', '08:15');
+$workOutTimeVal = get_system_setting('work_out_time', '16:00');
 
 include __DIR__ . '/includes/header.php';
 ?>
@@ -118,21 +133,44 @@ include __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
-<div class="form-row" style="align-items: start;">
-    <!-- Left Column: Institution & Report Printing Settings -->
-    <div class="panel" style="flex: 1.2;">
+<!-- Settings Section Menu Tabs Bar -->
+<div class="panel" style="margin-bottom: 24px; padding: 16px;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <button type="button" class="btn btn-primary setting-tab-btn" data-tab="tab-unit" onclick="switchSettingTab('tab-unit', this)">
+            <span class="material-symbols-outlined">domain</span>
+            <span>Identitas Unit & Kop</span>
+        </button>
+        <button type="button" class="btn btn-secondary setting-tab-btn" data-tab="tab-schedule" onclick="switchSettingTab('tab-schedule', this)">
+            <span class="material-symbols-outlined">schedule</span>
+            <span>Jadwal Jam Kerja</span>
+        </button>
+        <button type="button" class="btn btn-secondary setting-tab-btn" data-tab="tab-admin" onclick="switchSettingTab('tab-admin', this)">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <span>Profil Admin</span>
+        </button>
+        <button type="button" class="btn btn-secondary setting-tab-btn" data-tab="tab-backup" onclick="switchSettingTab('tab-backup', this)">
+            <span class="material-symbols-outlined">database</span>
+            <span>Backup Database</span>
+        </button>
+    </div>
+</div>
+
+<!-- Tab 1: Identitas Unit & Kop Laporan -->
+<div id="tab-unit" class="setting-tab-content" style="display: block;">
+    <div class="panel">
         <div class="panel-header">
-            <h2 class="panel-title">Pengaturan Identitas Unit & Kop Laporan</h2>
-            <span class="badge badge-info">Dokumen Cetak PDF</span>
+            <h2 class="panel-title">Pengaturan Identitas Unit & Kop Surat Laporan</h2>
+            <span class="badge badge-info">Kop Surat PDF</span>
         </div>
 
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-            Data di bawah ini akan ditampilkan secara otomatis pada **Kop Surat** dan **Tanda Tangan Dokumen** saat mencetak Laporan Presensi dan Laporan Petty Cash.
+            Data di bawah ini akan ditampilkan secara otomatis pada <b>Kop Surat</b> dan <b>Tanda Tangan Dokumen</b> saat mencetak Laporan Presensi dan Laporan Petty Cash.
         </p>
 
         <form method="POST" action="pengaturan.php">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="institution">
+            <input type="hidden" name="active_tab" value="tab-unit">
 
             <div class="form-group">
                 <label class="form-label">Nama Unit Lembaga biMBA</label>
@@ -166,28 +204,70 @@ include __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
-            <div class="form-group" style="margin-top: 10px;">
-                <label class="form-label">Default Masa Berlaku QR Code (Jam)</label>
-                <input type="number" name="qr_hours" class="form-control" value="<?= htmlspecialchars($qrHoursVal) ?>" min="1" max="72" required>
-                <small style="color: var(--text-muted); font-size: 11px;">Tentukan berapa jam QR Code presensi berlaku sebelum kedaluwarsa.</small>
-            </div>
-
             <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
                 <button type="submit" class="btn btn-primary">
                     <span class="material-symbols-outlined">save</span>
-                    <span>Simpan Pengaturan Laporan</span>
+                    <span>Simpan Identitas Unit</span>
                 </button>
             </div>
         </form>
     </div>
+</div>
 
-    <!-- Right Column: Admin Profile & Security -->
-    <div class="panel" style="flex: 1;">
+<!-- Tab 2: Pengaturan Jadwal Jam Kerja Presensi -->
+<div id="tab-schedule" class="setting-tab-content" style="display: none;">
+    <div class="panel">
         <div class="panel-header">
-            <h2 class="panel-title">Pengaturan Profil Admin</h2>
+            <h2 class="panel-title">Pengaturan Jadwal Jam Kerja & Status Presensi</h2>
+            <span class="badge badge-info">Validasi Jam Presensi</span>
         </div>
 
-        <form method="POST" action="pengaturan.php" style="margin-bottom: 24px;">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
+            Konfigurasi jam masuk, toleransi keterlambatan, dan jadwal pulang untuk validasi otomatis presensi QR karyawan.
+        </p>
+
+        <form method="POST" action="pengaturan.php">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="schedule">
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Jam Masuk Standard (Tepat Waktu)</label>
+                    <input type="time" name="work_in_time" class="form-control" value="<?= htmlspecialchars($workInTimeVal) ?>" required>
+                    <small style="color: var(--text-muted); font-size: 11px;">Waktu awal mulai bertugas (misal 08:00).</small>
+                </div>
+
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Batas Maksimal Toleransi (Terlambat)</label>
+                    <input type="time" name="work_in_late" class="form-control" value="<?= htmlspecialchars($workInLateVal) ?>" required>
+                    <small style="color: var(--text-muted); font-size: 11px;">Lewat jam ini dianggap status Terlambat (misal 08:15).</small>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label">Jam Keluar Standard (Jadwal Pulang)</label>
+                <input type="time" name="work_out_time" class="form-control" value="<?= htmlspecialchars($workOutTimeVal) ?>" required>
+                <small style="color: var(--text-muted); font-size: 11px;">Scan keluar sebelum jam ini statusnya Belum Waktu Pulang / Pulang Awal (misal 16:00).</small>
+            </div>           
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">save</span>
+                    <span>Simpan Jadwal Jam Kerja</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tab 3: Pengaturan Profil Admin -->
+<div id="tab-admin" class="setting-tab-content" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Pengaturan Profil Admin & Keamanan Akun</h2>
+        </div>
+
+        <form method="POST" action="pengaturan.php">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="profile">
 
@@ -216,14 +296,26 @@ include __DIR__ . '/includes/header.php';
             </div>
 
             <div style="display: flex; justify-content: flex-end;">
-                <button type="submit" class="btn btn-primary">Simpan Profil Admin</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-symbols-outlined">save</span>
+                    <span>Simpan Profil Admin</span>
+                </button>
             </div>
         </form>
+    </div>
+</div>
 
-        <div style="border-top: 2px solid var(--border-color); padding-top: 16px;">
-            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">Backup & Security Enkripsi</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-                Metode AES: <strong><?= AES_METHOD ?></strong>. Kunci rahasia AES tersimpan aman di server.
+<!-- Tab 4: Backup Database & System Info -->
+<div id="tab-backup" class="setting-tab-content" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Backup Database & Informasi Keamanan AES-256</h2>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">Backup System Database</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                Unduh salinan cadangan seluruh data sistem (karyawan, presensi, petty cash, dan settings) dalam bentuk file `.sql` untuk pemulihan data.
             </p>
             
             <a href="pengaturan.php?action=download_backup" class="btn btn-secondary">
@@ -231,7 +323,43 @@ include __DIR__ . '/includes/header.php';
                 <span>Download Backup Database (.sql)</span>
             </a>
         </div>
+
+        <div style="border-top: 2px solid var(--border-color); padding-top: 16px;">
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">Spesifikasi Kriptografi AES</h3>
+            <p style="font-size: 13px; color: var(--text-muted);">
+                Metode Enkripsi: <strong><?= AES_METHOD ?></strong><br>
+                Kunci Rahasia (AES Key): <strong>Terenkripsi SHA-256 di Server Configuration</strong>
+            </p>
+        </div>
     </div>
 </div>
+
+<script>
+function switchSettingTab(tabId, btnElement) {
+    document.querySelectorAll('.setting-tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.setting-tab-btn').forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+    });
+
+    const targetContent = document.getElementById(tabId);
+    if (targetContent) {
+        targetContent.style.display = 'block';
+    }
+
+    if (btnElement) {
+        btnElement.classList.remove('btn-secondary');
+        btnElement.classList.add('btn-primary');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const initialTab = '<?= $activeTab ?>';
+    const activeBtn = document.querySelector(`.setting-tab-btn[data-tab="${initialTab}"]`);
+    if (activeBtn) {
+        switchSettingTab(initialTab, activeBtn);
+    }
+});
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

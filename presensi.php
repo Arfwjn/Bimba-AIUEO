@@ -27,32 +27,6 @@ $todayList = $stmtToday->fetchAll();
 include __DIR__ . '/includes/header.php';
 ?>
 
-<!-- 1-Click Quick Scan Simulation Bar -->
-<div class="panel" style="margin-bottom: 24px; background-color: var(--surface-muted);">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-        <div>
-            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">                
-                Presensi Cepat
-            </h3>
-            <p style="font-size: 12px; color: var(--text-muted);">Pilih karyawan dari daftar untuk mencatat Presensi Masuk / Keluar secara instant tanpa perlu kamera.</p>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <select id="quickSelectEmp" class="form-control" style="min-width: 240px;">
-                <option value="">Pilih Karyawan</option>
-                <?php foreach ($activeEmployees as $emp): ?>
-                    <option value="EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?>">
-                        EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?> - <?= htmlspecialchars($emp['nama']) ?> (<?= htmlspecialchars($emp['jabatan']) ?>)
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <button class="btn btn-primary" onclick="executeQuickScan()">
-                <span class="material-symbols-outlined">qr_code_scanner</span>
-                <span>Presensi Instant</span>
-            </button>
-        </div>
-    </div>
-</div>
-
 <div class="form-row" style="align-items: start; margin-bottom: 28px;">
     <!-- Left Column: Scanner Viewport -->
     <div class="panel" style="flex: 1.2; margin-bottom: 0;">
@@ -65,27 +39,52 @@ include __DIR__ . '/includes/header.php';
             Arahkan kamera smartphone/webcam ke QR Code karyawan. Scan 1 = Presensi Masuk, Scan 2 = Presensi Keluar.
         </p>
 
-        <!-- Scanner Box / Video Container -->
+        <!-- Scanner Box / Video Container (video feed only, no library UI chrome) -->
         <div class="scanner-box" id="scannerViewport" style="min-height: 280px; position: relative;">
             <div id="cameraLoadingPlaceholder" style="text-align: center; padding: 40px 20px;">
                 <span class="material-symbols-outlined" style="font-size: 64px; margin-bottom: 12px; color: #FFFFFF;">videocam</span>
-                <p style="font-family: var(--font-sans); font-size: 14px; color: #FFFFFF;">Mengaktifkan Kamera Validator QR...</p>
+                <p style="font-family: var(--font-sans); font-size: 14px; color: #FFFFFF;">Memuat daftar kamera...</p>
             </div>
         </div>
 
-        <!-- Alternative Scan Methods Toolbar -->
-        <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-            <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;">
+        <!-- Camera Controls (custom, outside the video box, styled per tema situs) -->
+        <div id="cameraControls" style="display: none; margin-top: 12px; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <select id="cameraSelect" class="form-control" style="flex: 1; min-width: 180px;"></select>
+            <button type="button" id="toggleScanBtn" class="btn btn-primary" onclick="toggleScanning()">
+                <span class="material-symbols-outlined" style="font-size: 16px;" id="toggleScanIcon">play_circle</span>
+                <span id="toggleScanLabel">Mulai Scan</span>
+            </button>
+        </div>
+
+        <!-- Combined Alternative Scan & Presensi Instant Toolbar -->
+        <div style="margin-top: 16px; padding: 12px; background-color: var(--surface-muted); border: 1px solid var(--border-color); border-radius: 8px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <!-- Upload File Gambar QR -->
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0; white-space: nowrap;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">upload_file</span>
-                <span>Upload Gambar QR / Kartu</span>
+                <span>Upload Gambar QR</span>
                 <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromFile(this)">
             </label>
-            <span style="font-size: 11px; color: var(--text-muted);">Mendukung Hardware Scanner USB & Camera</span>
+
+            <!-- Presensi Cepat Dropdown & Instant Button -->
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1; justify-content: flex-end; min-width: 260px;">
+                <select id="quickSelectEmp" class="form-control" style="flex: 1; max-width: 220px; height: 36px; font-size: 12px; padding: 0 8px;">
+                    <option value="">Pilih Karyawan</option>
+                    <?php foreach ($activeEmployees as $emp): ?>
+                        <option value="EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?>">
+                            EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?> - <?= htmlspecialchars($emp['nama']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <button class="btn btn-primary btn-sm" style="height: 36px; white-space: nowrap;" onclick="executeQuickScan()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">bolt</span>
+                    <span>Instant</span>
+                </button>
+            </div>
         </div>
 
         <!-- Manual Payload Input Fallback -->
         <div class="form-group" style="margin-top: 16px;">
-            <label class="form-label">Input / Paste Encrypted Payload (Fallback Manual)</label>
+            <label class="form-label">Input / Paste AES Encrypted Payload Manual</label>
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="manualPayload" class="form-control" placeholder="Tempelkan teks payload AES di sini...">
                 <button type="button" class="btn btn-primary" onclick="submitScanPayload()">Submit</button>
@@ -197,46 +196,128 @@ include __DIR__ . '/includes/header.php';
 <script src="assets/js/html5-qrcode.min.js"></script>
 <script src="assets/js/qr-scanner-pro.js"></script>
 <script>
-let scannerInstance = null;
+let html5QrCodeInstance = null;
 let isScanLocked = false;
 let lastScannedText = '';
+let availableCameras = [];
+
+const SCAN_CONFIG = {
+    fps: 10,
+    qrbox: function(viewfinderWidth, viewfinderHeight) {
+        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+        let qrboxSize = Math.floor(minEdgeSize * 0.7);
+        return {
+            width: Math.max(qrboxSize, 180),
+            height: Math.max(qrboxSize, 180)
+        };
+    },
+    experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+    }
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     initCameraScanner();
+
+    const select = document.getElementById('cameraSelect');
+    if (select) {
+        select.addEventListener('change', async function() {
+            if (html5QrCodeInstance && html5QrCodeInstance.isScanning) {
+                await stopScanning();
+                await startScanning();
+            }
+        });
+    }
 });
 
-function initCameraScanner() {
-    if (typeof Html5QrcodeScanner === 'undefined') return;
+async function initCameraScanner() {
+    if (typeof Html5Qrcode === 'undefined') return;
+
+    const placeholder = document.getElementById('cameraLoadingPlaceholder');
+    const controls = document.getElementById('cameraControls');
+    const select = document.getElementById('cameraSelect');
 
     try {
-        const config = { 
-            fps: 25, 
-            qrbox: function(viewfinderWidth, viewfinderHeight) {
-                let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                let qrboxSize = Math.floor(minEdgeSize * 0.85);
-                return {
-                    width: Math.max(qrboxSize, 180),
-                    height: Math.max(qrboxSize, 180)
-                };
-            },
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true
-            },
-            rememberLastUsedCamera: true
-        };
+        availableCameras = await Html5Qrcode.getCameras();
 
-        scannerInstance = new Html5QrcodeScanner(
-            "scannerViewport", 
-            config,
-            /* verbose= */ false
-        );
+        if (!availableCameras || availableCameras.length === 0) {
+            if (placeholder) {
+                placeholder.innerHTML = '<p style="font-family: var(--font-sans); font-size: 13px; color: #FFFFFF;">Kamera tidak ditemukan.</p>';
+            }
+            return;
+        }
 
-        scannerInstance.render(onScanSuccess, onScanError);
+        select.innerHTML = '';
+        availableCameras.forEach(function(cam, idx) {
+            const opt = document.createElement('option');
+            opt.value = cam.id;
+            opt.textContent = cam.label || ('Kamera ' + (idx + 1));
+            select.appendChild(opt);
+        });
 
-        const placeholder = document.getElementById('cameraLoadingPlaceholder');
         if (placeholder) placeholder.style.display = 'none';
+        controls.style.display = 'flex';
+
+        await startScanning();
     } catch (e) {
         console.error("Camera init error:", e);
+        if (placeholder) {
+            placeholder.innerHTML = '<p style="font-family: var(--font-sans); font-size: 13px; color: #FFFFFF;">Tidak dapat mengakses kamera. Gunakan input payload manual.</p>';
+        }
+    }
+}
+
+async function startScanning() {
+    const select = document.getElementById('cameraSelect');
+    const cameraId = select.value;
+    if (!cameraId) return;
+
+    if (!html5QrCodeInstance) {
+        html5QrCodeInstance = new Html5Qrcode("scannerViewport");
+    }
+
+    try {
+        await html5QrCodeInstance.start(cameraId, SCAN_CONFIG, onScanSuccess, onScanError);
+        setToggleButtonState(true);
+    } catch (e) {
+        console.error("Start scan error:", e);
+        alert('Tidak dapat mengaktifkan kamera terpilih: ' + e);
+    }
+}
+
+async function stopScanning() {
+    if (html5QrCodeInstance && html5QrCodeInstance.isScanning) {
+        try {
+            await html5QrCodeInstance.stop();
+        } catch (e) {
+            console.error("Stop scan error:", e);
+        }
+    }
+    setToggleButtonState(false);
+}
+
+function toggleScanning() {
+    if (html5QrCodeInstance && html5QrCodeInstance.isScanning) {
+        stopScanning();
+    } else {
+        startScanning();
+    }
+}
+
+function setToggleButtonState(isScanning) {
+    const icon = document.getElementById('toggleScanIcon');
+    const label = document.getElementById('toggleScanLabel');
+    const btn = document.getElementById('toggleScanBtn');
+    if (isScanning) {
+        icon.textContent = 'stop_circle';
+        label.textContent = 'Hentikan Scan';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+    } else {
+        icon.textContent = 'play_circle';
+        label.textContent = 'Mulai Scan';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
     }
 }
 

@@ -1,23 +1,39 @@
 <?php
-// export.php
+/**
+ * Modul Export Data Laporan ke File Microsoft Excel (.xls)
+ * 
+ * Menghasilkan file lembar kerja Microsoft Excel berformat Native XML/HTML Spreadsheet 
+ * dengan header resmi lembaga, format mata uang Rupiah, dan blok tanda tangan Kepala Unit.
+ * 
+ * Tipe Export yang Didukung:
+ * 1. type = presensi    : Export Rekapitulasi Presensi Karyawan
+ * 2. type = petty_cash  : Export Arus Kas Kecil (Petty Cash)
+ * 3. type = karyawan    : Export Master Data Karyawan
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Exports
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
+// 1. Ambil Parameter Tipe Export dari URL Query String
 $type = trim($_GET['type'] ?? 'presensi');
 $pdo = getDB();
 
-// Output Native Excel Headers
+// 2. Set Response Header untuk Mendownload File Microsoft Excel (.xls)
 $filename = "export_{$type}_" . date('Ymd_His') . ".xls";
 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 header('Cache-Control: max-age=0');
 
-// Fetch Dynamic Settings
+// 3. Ambil Identitas Lembaga & Kepala Unit dari Pengaturan Sistem
 $unitNameVal = get_system_setting('unit_name', 'biMBA AIUEO Unit Kebanggan');
 $unitLeaderVal = get_system_setting('unit_leader', 'Siti Rahmawati, S.Pd');
 $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
-// Start Excel HTML Document Structure
+// 4. Struktur HTML XML Microsoft Excel
 ?>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
@@ -56,6 +72,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <?php if ($type === 'presensi'): ?>
     <?php
+    // Filtering Rekapitulasi Presensi Berdasarkan Bulan, Tahun, dan ID Karyawan
     $month = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
     $year = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
     $empId = isset($_GET['karyawan_id']) ? intval($_GET['karyawan_id']) : 0;
@@ -94,9 +111,11 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Judul Header Laporan Presensi -->
     <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
     <div class="subtitle">LAPORAN REKAPITULASI PRESENSI KARYAWAN - Periode: <?= $monthsIndo[$month] ?> <?= $year ?></div>
 
+    <!-- Tabel Data Rekapitulasi Presensi -->
     <table>
         <thead>
             <tr>
@@ -113,7 +132,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
         </thead>
         <tbody>
             <?php if (empty($rows)): ?>
-                <tr><td colspan="9" class="center">Tidak ada data presensi</td></tr>
+                <tr><td colspan="9" class="center">Tidak ada data presensi pada periode ini</td></tr>
             <?php else: ?>
                 <?php $no = 1; foreach ($rows as $r): ?>
                     <tr>
@@ -134,6 +153,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <?php elseif ($type === 'petty_cash'): ?>
     <?php
+    // Filtering Transaksi Petty Cash Berdasarkan Jenis dan Kata Kunci Pencarian
     $filterJenis = trim($_GET['jenis'] ?? '');
     $search = trim($_GET['search'] ?? '');
 
@@ -156,9 +176,11 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Judul Header Laporan Petty Cash -->
     <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
     <div class="subtitle">LAPORAN ARUS KAS KECIL (PETTY CASH)</div>
 
+    <!-- Tabel Data Transaksi Kas Kecil -->
     <table>
         <thead>
             <tr>
@@ -193,13 +215,16 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <?php elseif ($type === 'karyawan'): ?>
     <?php
+    // Export Master Data Karyawan
     $stmt = $pdo->query("SELECT * FROM karyawan ORDER BY id_karyawan DESC");
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Judul Header Daftar Karyawan -->
     <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
     <div class="subtitle">DAFTAR KARYAWAN & STAF MOTIVATOR</div>
 
+    <!-- Tabel Master Data Karyawan -->
     <table>
         <thead>
             <tr>
@@ -231,6 +256,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     </table>
 <?php endif; ?>
 
+<!-- Blok Tanda Tangan Resmi Kepala Unit -->
 <br><br>
 <table style="border: none;">
     <tr style="border: none;">
