@@ -70,24 +70,21 @@ function validate_uploaded_file($fileArr, $allowedMimes = ['image/jpeg', 'image/
 
 /**
  * Encrypt QR Code Payload using AES-256-CBC
+ * Uses ultra-compact format (EMP-001:NONCE) for Version 1 ultra-clear QR codes
  */
-function encrypt_qr_payload($empCode, $validHours = 12) {
+function encrypt_qr_payload($empCode, $validHours = 0) {
     $now = time();
-    $expires = $now + ($validHours * 3600);
+    $expiresAt = ($validHours > 0) ? date('c', $now + ($validHours * 3600)) : 'PERMANENT';
+    $nonce = substr(bin2hex(random_bytes(3)), 0, 6);
 
-    $payload = [
-        'employee_id' => $empCode,
-        'issued_at' => date('c', $now),
-        'expires_at' => date('c', $expires),
-        'nonce' => bin2hex(random_bytes(8))
-    ];
+    // Compact format: EMP-001|PERMANENT|nonce
+    $plainStr = "{$empCode}|{$expiresAt}|{$nonce}";
 
-    $jsonStr = json_encode($payload);
     $key = hash('sha256', AES_KEY, true); // 32 bytes binary key
     $ivLength = openssl_cipher_iv_length(AES_METHOD);
     $iv = random_bytes($ivLength);
 
-    $encrypted = openssl_encrypt($jsonStr, AES_METHOD, $key, OPENSSL_RAW_DATA, $iv);
+    $encrypted = openssl_encrypt($plainStr, AES_METHOD, $key, OPENSSL_RAW_DATA, $iv);
     if ($encrypted === false) {
         return false;
     }
@@ -98,10 +95,21 @@ function encrypt_qr_payload($empCode, $validHours = 12) {
 
 /**
  * Decrypt QR Code Payload using AES-256-CBC
+ * Supports compact pipe format, JSON format, and direct employee code fallback
  */
 function decrypt_qr_payload($encryptedBase64) {
+    $cleanInput = trim($encryptedBase64);
+
+    // Direct Employee Code Fallback (e.g., EMP-001)
+    if (preg_match('/^EMP-\d{3,4}$/i', $cleanInput)) {
+        return [
+            'employee_id' => strtoupper($cleanInput),
+            'expires_at' => 'PERMANENT'
+        ];
+    }
+
     try {
-        $data = base64_decode($encryptedBase64, true);
+        $data = base64_decode($cleanInput, true);
         if ($data === false) {
             return false;
         }
@@ -119,12 +127,27 @@ function decrypt_qr_payload($encryptedBase64) {
             return false;
         }
 
-        $payload = json_decode($decrypted, true);
-        if (!is_array($payload) || !isset($payload['employee_id'], $payload['expires_at'])) {
-            return false;
+        // Check if compact pipe format: EMP-001|PERMANENT|nonce
+        if (strpos($decrypted, '|') !== false) {
+            $pipeParts = explode('|', $decrypted);
+            if (count($pipeParts) >= 2) {
+                return [
+                    'employee_id' => trim($pipeParts[0]),
+                    'expires_at' => trim($pipeParts[1])
+                ];
+            }
         }
 
-        return $payload;
+        // Check if JSON format
+        $payload = json_decode($decrypted, true);
+        if (is_array($payload) && isset($payload['employee_id'])) {
+            return [
+                'employee_id' => $payload['employee_id'],
+                'expires_at' => $payload['expires_at'] ?? 'PERMANENT'
+            ];
+        }
+
+        return false;
     } catch (Exception $e) {
         return false;
     }

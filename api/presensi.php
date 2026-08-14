@@ -30,21 +30,23 @@ if ($decrypted === false) {
 }
 
 $empCodeStr = $decrypted['employee_id'] ?? '';
-$expiresAtStr = $decrypted['expires_at'] ?? '';
+$expiresAtStr = $decrypted['expires_at'] ?? 'PERMANENT';
 
 // Extract numeric ID if passed as EMP-001 or 1
 $empIdNum = intval(preg_replace('/[^0-9]/', '', $empCodeStr));
 
-// 2. Validate Expiration
-$expiresAt = strtotime($expiresAtStr);
-if (!$expiresAt || $expiresAt < time()) {
-    echo json_encode([
-        'success' => false,
-        'status' => 'Expired',
-        'message' => 'QR Code telah kedaluwarsa (Expired)',
-        'emp_code' => $empCodeStr
-    ]);
-    exit;
+// 2. Validate Expiration (Skip if PERMANENT)
+if ($expiresAtStr !== 'PERMANENT') {
+    $expiresAt = strtotime($expiresAtStr);
+    if (!$expiresAt || $expiresAt < time()) {
+        echo json_encode([
+            'success' => false,
+            'status' => 'Expired',
+            'message' => 'QR Code telah kedaluwarsa (Expired)',
+            'emp_code' => $empCodeStr
+        ]);
+        exit;
+    }
 }
 
 // 3. Validate Employee in DB

@@ -73,6 +73,16 @@ include __DIR__ . '/includes/header.php';
             </div>
         </div>
 
+        <!-- Alternative Scan Methods Toolbar -->
+        <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">upload_file</span>
+                <span>Upload Gambar QR / Kartu</span>
+                <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromFile(this)">
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">Mendukung Hardware Scanner USB & Camera</span>
+        </div>
+
         <!-- Manual Payload Input Fallback -->
         <div class="form-group" style="margin-top: 16px;">
             <label class="form-label">Input / Paste Encrypted Payload (Fallback Manual)</label>
@@ -199,13 +209,25 @@ function initCameraScanner() {
     if (typeof Html5QrcodeScanner === 'undefined') return;
 
     try {
+        const config = { 
+            fps: 25, 
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                let qrboxSize = Math.floor(minEdgeSize * 0.85);
+                return {
+                    width: Math.max(qrboxSize, 180),
+                    height: Math.max(qrboxSize, 180)
+                };
+            },
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
+            },
+            rememberLastUsedCamera: true
+        };
+
         scannerInstance = new Html5QrcodeScanner(
             "scannerViewport", 
-            { 
-                fps: 15, 
-                qrbox: { width: 220, height: 220 },
-                rememberLastUsedCamera: true
-            },
+            config,
             /* verbose= */ false
         );
 
@@ -236,6 +258,94 @@ function onScanSuccess(decodedText) {
 function onScanError(error) {
     // Ignore frame scan errors
 }
+
+function scanQRFromFile(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    let decoderContainer = document.getElementById('qrFileDecoderContainer');
+    if (!decoderContainer) {
+        decoderContainer = document.createElement('div');
+        decoderContainer.id = 'qrFileDecoderContainer';
+        decoderContainer.style.display = 'none';
+        document.body.appendChild(decoderContainer);
+    }
+
+    const html5QrCode = new Html5Qrcode("qrFileDecoderContainer");
+
+    // Pass 1: Try Direct File Scan
+    html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+            input.value = '';
+            onScanSuccess(decodedText);
+        })
+        .catch(err => {
+            // Pass 2: Canvas Downscale Fallback for Large Smartphone Photos
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxDim = 800;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    canvas.toBlob(function(blob) {
+                        if (!blob) {
+                            alert("Gagal membaca QR Code dari file gambar.");
+                            input.value = '';
+                            return;
+                        }
+                        const resizedFile = new File([blob], "resized_qr.jpg", { type: "image/jpeg" });
+                        html5QrCode.scanFile(resizedFile, true)
+                            .then(decoded => {
+                                input.value = '';
+                                onScanSuccess(decoded);
+                            })
+                            .catch(err2 => {
+                                alert("Gagal membaca QR Code dari file gambar. Pastikan foto QR Code terlihat jelas.");
+                                input.value = '';
+                            });
+                    }, 'image/jpeg', 0.9);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+}
+
+// Global USB Hardware Barcode / QR Scanner Key Listener
+let barcodeBuffer = '';
+let barcodeTimeout = null;
+
+document.addEventListener('keydown', function(e) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        return;
+    }
+    if (e.key === 'Enter') {
+        if (barcodeBuffer.length >= 5) {
+            processPayload(barcodeBuffer.trim());
+        }
+        barcodeBuffer = '';
+    } else if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 250);
+    }
+});
 
 function executeQuickScan() {
     const empCode = document.getElementById('quickSelectEmp').value;

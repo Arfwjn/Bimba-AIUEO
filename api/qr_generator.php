@@ -24,7 +24,7 @@ if (!$emp) {
     exit;
 }
 
-$validHours = isset($_GET['hours']) ? intval($_GET['hours']) : 12;
+$validHours = isset($_GET['hours']) ? intval($_GET['hours']) : 0;
 $formattedCode = 'EMP-' . sprintf('%03d', $emp['id_karyawan']);
 $encryptedPayload = encrypt_qr_payload($formattedCode, $validHours);
 
@@ -34,7 +34,7 @@ if (!$encryptedPayload) {
 }
 
 // Save or Update to qr_code table in DB
-$expiresAtDate = date('Y-m-d H:i:s', time() + ($validHours * 3600));
+$expiresAtDate = ($validHours > 0) ? date('Y-m-d H:i:s', time() + ($validHours * 3600)) : '2099-12-31 23:59:59';
 $stmtQr = $pdo->prepare("
     INSERT INTO qr_code (kode_qr, encrypted_data, expired) 
     VALUES (?, ?, ?) 
@@ -60,5 +60,5 @@ echo json_encode([
     'nama' => $emp['nama'],
     'jabatan' => $emp['jabatan'],
     'payload' => $encryptedPayload,
-    'expires_at' => date('d M Y H:i:s', strtotime($expiresAtDate))
+    'expires_at' => ($validHours > 0) ? date('d M Y H:i:s', strtotime($expiresAtDate)) : 'Selamanya (Permanen)'
 ]);

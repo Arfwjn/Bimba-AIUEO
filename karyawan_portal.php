@@ -71,7 +71,7 @@ include __DIR__ . '/includes/header.php';
 <?php if ($selectedEmp): ?>
     <?php 
     $formattedCode = 'EMP-' . sprintf('%03d', $selectedEmp['id_karyawan']);
-    $encryptedPayload = encrypt_qr_payload($formattedCode, 12);
+    $encryptedPayload = encrypt_qr_payload($formattedCode, 0);
     ?>
 
     <div class="form-row" style="align-items: start;">
