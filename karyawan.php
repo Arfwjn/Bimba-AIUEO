@@ -196,7 +196,7 @@ include __DIR__ . '/includes/header.php';
                                     <button class="btn btn-secondary btn-sm" onclick="editEmployee(<?= htmlspecialchars(json_encode($emp)) ?>)">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
                                     </button>
-                                    <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirm('Ubah status aktif karyawan ini?');">
+                                    <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Ubah Status Karyawan', message: 'Apakah Anda yakin ingin mengubah status keaktifan karyawan ini?', type: 'warning', icon: 'sync_alt', btnText: 'Ya, Ubah Status', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="toggle">
                                         <input type="hidden" name="id_karyawan" value="<?= $emp['id_karyawan'] ?>">
@@ -204,7 +204,7 @@ include __DIR__ . '/includes/header.php';
                                             <span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span>
                                         </button>
                                     </form>
-                                    <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');">
+                                    <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Hapus Data Karyawan', message: 'Apakah Anda yakin ingin menghapus karyawan ini secara permanen?', type: 'danger', icon: 'delete_forever', btnText: 'Ya, Hapus Karyawan', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id_karyawan" value="<?= $emp['id_karyawan'] ?>">

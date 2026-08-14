@@ -49,6 +49,54 @@ function closeModal(modalId) {
     }
 }
 
+/**
+ * Custom CRUD Confirmation Modal Handler (Replaces native browser confirm())
+ */
+function confirmAction(opts) {
+    const modal = document.getElementById('globalConfirmModal');
+    if (!modal) {
+        if (confirm(opts.message || 'Lanjutkan aksi ini?')) {
+            if (typeof opts.onConfirm === 'function') opts.onConfirm();
+            else if (opts.onConfirm && opts.onConfirm.submit) opts.onConfirm.submit();
+        }
+        return false;
+    }
+
+    const titleEl = document.getElementById('confirmModalTitle');
+    const msgEl = document.getElementById('confirmModalMessage');
+    const iconEl = document.getElementById('confirmModalIcon');
+    const submitBtn = document.getElementById('confirmModalSubmitBtn');
+
+    if (titleEl) titleEl.textContent = opts.title || 'Konfirmasi Aksi';
+    if (msgEl) msgEl.textContent = opts.message || 'Apakah Anda yakin ingin melanjutkan aksi ini?';
+    
+    if (iconEl) {
+        iconEl.textContent = opts.icon || (opts.type === 'danger' ? 'delete_forever' : 'warning');
+        iconEl.style.color = opts.type === 'danger' ? '#DC2626' : '#D97706';
+    }
+
+    if (submitBtn) {
+        submitBtn.textContent = opts.btnText || (opts.type === 'danger' ? 'Ya, Hapus' : 'Ya, Lanjutkan');
+        submitBtn.className = 'btn ' + (opts.btnClass || (opts.type === 'danger' ? 'btn-danger' : 'btn-primary'));
+        
+        // Clone button to replace event listener
+        const newBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newBtn, submitBtn);
+
+        newBtn.addEventListener('click', function() {
+            closeModal('globalConfirmModal');
+            if (typeof opts.onConfirm === 'function') {
+                opts.onConfirm();
+            } else if (opts.onConfirm && typeof opts.onConfirm.submit === 'function') {
+                opts.onConfirm.submit();
+            }
+        });
+    }
+
+    openModal('globalConfirmModal');
+    return false;
+}
+
 // Format Rupiah Input
 function formatRupiahInput(input) {
     let value = input.value.replace(/[^0-9]/g, '');

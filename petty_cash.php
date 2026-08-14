@@ -286,7 +286,7 @@ include __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align: right;">
-                                    <form method="POST" action="petty_cash.php" style="display: inline;" onsubmit="return confirm('Hapus transaksi ini?');">
+                                    <form method="POST" action="petty_cash.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Hapus Transaksi Kas', message: 'Apakah Anda yakin ingin menghapus catatan transaksi kas kecil ini secara permanen?', type: 'danger', icon: 'delete_forever', btnText: 'Ya, Hapus Transaksi', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id_transaksi" value="<?= $t['id_transaksi'] ?>">
