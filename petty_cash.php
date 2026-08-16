@@ -85,23 +85,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch Filtered Petty Cash List
+// Fetch Filtered Petty Cash List with Pagination (Max 5 per page)
 $filterJenis = trim($_GET['jenis'] ?? '');
 $search = trim($_GET['search'] ?? '');
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$perPage = 5;
 
+$countSql = "SELECT COUNT(*) FROM petty_cash WHERE 1=1";
 $sql = "SELECT * FROM petty_cash WHERE 1=1";
 $params = [];
 
 if (!empty($filterJenis)) {
-    $sql .= " AND jenis = ?";
+    $whereJ = " AND jenis = ?";
+    $countSql .= $whereJ;
+    $sql .= $whereJ;
     $params[] = $filterJenis;
 }
 if (!empty($search)) {
-    $sql .= " AND (keterangan LIKE ? OR jenis LIKE ?)";
+    $whereS = " AND (keterangan LIKE ? OR jenis LIKE ?)";
+    $countSql .= $whereS;
+    $sql .= $whereS;
     $params[] = "%$search%";
     $params[] = "%$search%";
 }
-$sql .= " ORDER BY id_transaksi DESC";
+
+$stmtCount = $pdo->prepare($countSql);
+$stmtCount->execute($params);
+$totalRecords = intval($stmtCount->fetchColumn());
+$totalPages = ceil($totalRecords / $perPage);
+$page = max(1, min($page, max(1, $totalPages)));
+$offset = ($page - 1) * $perPage;
+
+$sql .= " ORDER BY id_transaksi DESC LIMIT {$perPage} OFFSET {$offset}";
 
 $stmtList = $pdo->prepare($sql);
 $stmtList->execute($params);
@@ -159,7 +174,7 @@ include __DIR__ . '/includes/header.php';
 
 <div class="form-row" style="align-items: start; margin-bottom: 28px;">
     <!-- Form Input Petty Cash -->
-    <div class="panel" style="flex: 1; margin-bottom: 0;">
+    <div class="panel" style="flex: 1; min-width: 300px; margin-bottom: 0;">
         <div class="panel-header">
             <h2 class="panel-title">Input Transaksi Petty Cash</h2>
         </div>
@@ -215,46 +230,46 @@ include __DIR__ . '/includes/header.php';
         </form>
     </div>
 
-    <!-- Table Daftar Transaksi -->
-    <div class="panel" style="flex: 1.5; margin-bottom: 0;">
-        <div class="panel-header">
-            <h2 class="panel-title">Daftar Transaksi Petty Cash</h2>
-            <div style="display: flex; gap: 8px;">
-                <a href="laporan_petty_cash.php" class="btn btn-secondary btn-sm">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">analytics</span>
-                    <span>Laporan Kas Kecil</span>
+    <!-- Table Daftar Transaksi (Fit 100% Horizontal) -->
+    <div class="panel" style="flex: 1.8; min-width: 0; margin-bottom: 0;">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+            <h2 class="panel-title" style="font-size: 16px;">Daftar Transaksi Petty Cash</h2>
+            <div style="display: flex; gap: 6px;">
+                <a href="laporan_petty_cash.php" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">analytics</span>
+                    <span>Laporan</span>
                 </a>
-                <a href="export.php?type=petty_cash&jenis=<?= $filterJenis ?>&search=<?= urlencode($search) ?>" class="btn btn-secondary btn-sm">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+                <a href="export.php?type=petty_cash&jenis=<?= $filterJenis ?>&search=<?= urlencode($search) ?>" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">download</span>
                     <span>Export Excel</span>
                 </a>
             </div>
         </div>
 
         <!-- Filter Bar -->
-        <form method="GET" action="petty_cash.php" style="margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <select name="jenis" class="form-control" style="width: auto;" onchange="this.form.submit()">
+        <form method="GET" action="petty_cash.php" style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
+            <select name="jenis" class="form-control" style="width: 155px; min-width: 155px; height: 38px; padding: 0 30px 0 12px; font-size: 13px;" onchange="this.form.submit()">
                 <option value="">Semua Jenis</option>
                 <option value="Pemasukan" <?= $filterJenis === 'Pemasukan' ? 'selected' : '' ?>>Pemasukan</option>
                 <option value="Pengeluaran" <?= $filterJenis === 'Pengeluaran' ? 'selected' : '' ?>>Pengeluaran</option>
             </select>
-            <input type="text" name="search" class="form-control" style="flex: 1;" placeholder="Cari keterangan..." value="<?= htmlspecialchars($search) ?>">
-            <button type="submit" class="btn btn-secondary">Filter</button>
+            <input type="text" name="search" class="form-control" style="flex: 1; height: 38px; padding: 0 12px; font-size: 13px;" placeholder="Cari keterangan..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit" class="btn btn-secondary" style="height: 38px; padding: 0 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">Filter</button>
             <?php if ($filterJenis || $search): ?>
-                <a href="petty_cash.php" class="btn btn-secondary">Reset</a>
+                <a href="petty_cash.php" class="btn btn-secondary" style="height: 38px; padding: 0 14px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center;">Reset</a>
             <?php endif; ?>
         </form>
 
-        <div class="table-container">
-            <table class="table">
+        <div class="table-container" style="overflow-x: hidden;">
+            <table class="table table-compact" style="width: 100%; table-layout: auto;">
                 <thead>
                     <tr>
-                        <th>Tanggal</th>
+                        <th class="table-nowrap">Tanggal</th>
                         <th>Kategori & Keterangan</th>
-                        <th>Nominal</th>
-                        <th>Saldo Akhir</th>
-                        <th>Bukti</th>
-                        <th style="text-align: right;">Aksi</th>
+                        <th class="table-nowrap">Nominal</th>
+                        <th class="table-nowrap">Saldo Akhir</th>
+                        <th class="table-nowrap" style="text-align: center;">Bukti</th>
+                        <th class="table-nowrap" style="text-align: right;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -263,35 +278,35 @@ include __DIR__ . '/includes/header.php';
                     <?php else: ?>
                         <?php foreach ($transactions as $t): ?>
                             <tr>
-                                <td><strong><?= date('d/m/Y', strtotime($t['tanggal'] ?? 'now')) ?></strong></td>
+                                <td class="table-nowrap"><strong><?= date('d/m/Y', strtotime($t['tanggal'] ?? 'now')) ?></strong></td>
                                 <td>
-                                    <strong><?= htmlspecialchars($t['kategori'] ?? $t['keterangan'] ?? 'Transaksi Kas') ?></strong><br>
-                                    <small style="color: var(--text-muted);"><?= htmlspecialchars($t['keterangan'] ?? '-') ?></small>
+                                    <strong style="display: block; line-height: 1.2; font-size: 12px;"><?= htmlspecialchars($t['kategori'] ?? $t['keterangan'] ?? 'Transaksi Kas') ?></strong>
+                                    <small style="color: var(--text-muted); font-size: 11px; display: block; line-height: 1.2; margin-top: 2px;"><?= htmlspecialchars($t['keterangan'] ?? '-') ?></small>
                                 </td>
-                                <td>
-                                    <strong style="color: <?= ($t['jenis'] ?? '') === 'Pemasukan' ? 'var(--status-success-text)' : 'var(--status-danger-text)' ?>;">
+                                <td class="table-nowrap">
+                                    <strong style="color: <?= ($t['jenis'] ?? '') === 'Pemasukan' ? 'var(--status-success-text)' : 'var(--status-danger-text)' ?>; font-size: 12px;">
                                         <?= ($t['jenis'] ?? '') === 'Pemasukan' ? '+' : '-' ?> Rp <?= number_format($t['nominal'] ?? 0, 0, ',', '.') ?>
                                     </strong>
                                 </td>
-                                <td>
-                                    <strong>Rp <?= number_format($t['saldo_setelah'] ?? $t['nominal'] ?? 0, 0, ',', '.') ?></strong>
+                                <td class="table-nowrap">
+                                    <strong style="font-size: 12px;">Rp <?= number_format($t['saldo_setelah'] ?? $t['nominal'] ?? 0, 0, ',', '.') ?></strong>
                                 </td>
-                                <td>
+                                <td class="table-nowrap" style="text-align: center;">
                                     <?php if (!empty($t['bukti_file'])): ?>
-                                        <a href="assets/uploads/<?= htmlspecialchars($t['bukti_file']) ?>" target="_blank" class="btn btn-secondary btn-sm">
-                                            <span class="material-symbols-outlined" style="font-size: 16px;">receipt</span>
+                                        <a href="assets/uploads/<?= htmlspecialchars($t['bukti_file']) ?>" target="_blank" class="btn btn-secondary btn-square" title="Lihat Bukti Transaksi">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">receipt_long</span>
                                         </a>
                                     <?php else: ?>
-                                        <span style="color: var(--text-muted); font-size: 12px;">-</span>
+                                        <span style="color: var(--text-muted); font-size: 11px;">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="text-align: right;">
+                                <td class="table-nowrap" style="text-align: right;">
                                     <form method="POST" action="petty_cash.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Hapus Transaksi Kas', message: 'Apakah Anda yakin ingin menghapus catatan transaksi kas kecil ini secara permanen?', type: 'danger', icon: 'delete_forever', btnText: 'Ya, Hapus Transaksi', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id_transaksi" value="<?= $t['id_transaksi'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                                        <button type="submit" class="btn btn-danger btn-square" title="Hapus Transaksi">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                                         </button>
                                     </form>
                                 </td>
@@ -301,6 +316,9 @@ include __DIR__ . '/includes/header.php';
                 </tbody>
             </table>
         </div>
+
+        <!-- Render Reusable Pagination Controls (Max 5 per page) -->
+        <?= render_pagination($page, $totalPages, ['jenis' => $filterJenis, 'search' => $search]) ?>
     </div>
 </div>
 

@@ -32,9 +32,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!empty($nama) && !empty($jabatan)) {
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO karyawan (nama, jabatan, status_aktif) VALUES (?, ?, ?)");
-                    $stmt->execute([$nama, $jabatan, $status]);
-                    $message = 'Karyawan baru berhasil ditambahkan!';
+                    // Cari ID terkecil yang kosong / belum terpakai (mengisi nomor ID yang dihapus)
+                    $existingIds = $pdo->query("SELECT id_karyawan FROM karyawan ORDER BY id_karyawan ASC")->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    $nextId = 1;
+                    if (!empty($existingIds)) {
+                        $idSet = array_flip(array_map('intval', $existingIds));
+                        while (isset($idSet[$nextId])) {
+                            $nextId++;
+                        }
+                    }
+
+                    // Insert karyawan dengan ID terkecil yang tersedia
+                    $stmt = $pdo->prepare("INSERT INTO karyawan (id_karyawan, nama, jabatan, status_aktif) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$nextId, $nama, $jabatan, $status]);
+                    
+                    $formattedCode = 'EMP-' . sprintf('%03d', $nextId);
+                    $message = "Karyawan baru berhasil ditambahkan dengan Kode ({$formattedCode})!";
                 } catch (PDOException $e) {
                     $error = 'Gagal menambah data karyawan: ' . $e->getMessage();
                 }
@@ -71,27 +85,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = intval($_POST['id_karyawan'] ?? 0);
             if ($id > 0) {
                 try {
+                    $pdo->beginTransaction();
+                    
+                    // 1. Delete associated presensi history for this employee
+                    $stmtP = $pdo->prepare("DELETE FROM presensi WHERE id_karyawan = ?");
+                    $stmtP->execute([$id]);
+
+                    // 2. Delete associated qr_code records for this employee (if table exists)
+                    try {
+                        $stmtQ = $pdo->prepare("DELETE FROM qr_code WHERE id_karyawan = ?");
+                        $stmtQ->execute([$id]);
+                    } catch (Exception $eq) {}
+
+                    // 3. Delete the employee record
                     $stmt = $pdo->prepare("DELETE FROM karyawan WHERE id_karyawan = ?");
                     $stmt->execute([$id]);
-                    $message = 'Data karyawan berhasil dihapus!';
-                } catch (PDOException $e) {
-                    $error = 'Gagal menghapus data karyawan.';
+
+                    $pdo->commit();
+                    $message = 'Data karyawan dan seluruh riwayat presensinya berhasil dihapus!';
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $error = 'Gagal menghapus data karyawan: ' . $e->getMessage();
                 }
             }
         }
     }
 }
 
-// Fetch Karyawan List with Search Filter
+// Fetch Karyawan List with Search Filter & Pagination (Max 5 per page)
 $search = trim($_GET['search'] ?? '');
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$perPage = 5;
+
+$countSql = "SELECT COUNT(*) FROM karyawan";
 $sql = "SELECT * FROM karyawan";
 $params = [];
+
 if (!empty($search)) {
-    $sql .= " WHERE nama LIKE ? OR jabatan LIKE ?";
+    $where = " WHERE nama LIKE ? OR jabatan LIKE ?";
+    $countSql .= $where;
+    $sql .= $where;
     $searchTerm = "%$search%";
     $params = [$searchTerm, $searchTerm];
 }
-$sql .= " ORDER BY id_karyawan DESC";
+
+$stmtCount = $pdo->prepare($countSql);
+$stmtCount->execute($params);
+$totalRecords = intval($stmtCount->fetchColumn());
+$totalPages = ceil($totalRecords / $perPage);
+$page = max(1, min($page, max(1, $totalPages)));
+$offset = ($page - 1) * $perPage;
+
+$sql .= " ORDER BY id_karyawan DESC LIMIT {$perPage} OFFSET {$offset}";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -118,30 +165,29 @@ include __DIR__ . '/includes/header.php';
     <div class="panel-header no-print">
         <div>
             <h2 class="panel-title">Daftar Karyawan Unit</h2>
-            <p style="font-size: 13px; color: var(--text-muted);">Kelola data staf/motivator dan kredensial QR Code terenkripsi.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Kelola master data karyawan, cetak ID Card terenkripsi AES-256, dan portal presensi.</p>
         </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <a href="karyawan_portal.php" class="btn btn-secondary">
-                <span class="material-symbols-outlined">badge</span>
-                <span>Portal ID Card Karyawan</span>
+        <div style="display: flex; gap: 10px;">
+            <a href="export.php?type=karyawan" class="btn btn-secondary btn-sm">
+                <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+                <span>Export Excel (.xls)</span>
             </a>
-            <a href="export.php?type=karyawan" class="btn btn-secondary">
-                <span class="material-symbols-outlined">download</span>
-                <span>Export Excel</span>
-            </a>
-            <button onclick="openModal('modalAddEmployee')" class="btn btn-primary">
-                <span class="material-symbols-outlined">person_add</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modalAddEmployee')">
+                <span class="material-symbols-outlined" style="font-size: 16px;">person_add</span>
                 <span>Tambah Karyawan</span>
             </button>
         </div>
     </div>
 
-    <!-- Search Bar -->
-    <form method="GET" action="karyawan.php" style="margin-bottom: 20px;" class="no-print">
-        <div style="display: flex; gap: 12px; max-width: 480px;">
-            <input type="text" name="search" class="form-control" placeholder="Cari Berdasarkan Nama / Jabatan..." value="<?= htmlspecialchars($search) ?>">
-            <button type="submit" class="btn btn-secondary">Cari</button>
-            <?php if ($search): ?>
+    <!-- Search Filter Bar -->
+    <form method="GET" action="karyawan.php" class="no-print" style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" name="search" class="form-control" placeholder="Cari nama atau jabatan karyawan..." value="<?= htmlspecialchars($search) ?>" style="flex: 1;">
+            <button type="submit" class="btn btn-secondary">
+                <span class="material-symbols-outlined">search</span>
+                <span>Cari</span>
+            </button>
+            <?php if (!empty($search)): ?>
                 <a href="karyawan.php" class="btn btn-secondary">Reset</a>
             <?php endif; ?>
         </div>
@@ -193,23 +239,23 @@ include __DIR__ . '/includes/header.php';
                             </td>
                             <td style="text-align: right;">
                                 <div style="display: inline-flex; gap: 6px;">
-                                    <button class="btn btn-secondary btn-sm" onclick="editEmployee(<?= htmlspecialchars(json_encode($emp)) ?>)">
-                                        <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                                    <button class="btn btn-secondary btn-square" onclick="editEmployee(<?= htmlspecialchars(json_encode($emp)) ?>)" title="Edit Karyawan">
+                                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
                                     </button>
                                     <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Ubah Status Karyawan', message: 'Apakah Anda yakin ingin mengubah status keaktifan karyawan ini?', type: 'warning', icon: 'sync_alt', btnText: 'Ya, Ubah Status', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="toggle">
                                         <input type="hidden" name="id_karyawan" value="<?= $emp['id_karyawan'] ?>">
-                                        <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Status">
-                                            <span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span>
+                                        <button type="submit" class="btn btn-secondary btn-square" title="Toggle Status Aktif">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">sync_alt</span>
                                         </button>
                                     </form>
                                     <form method="POST" action="karyawan.php" style="display: inline;" onsubmit="return confirmAction({ title: 'Hapus Data Karyawan', message: 'Apakah Anda yakin ingin menghapus karyawan ini secara permanen?', type: 'danger', icon: 'delete_forever', btnText: 'Ya, Hapus Karyawan', onConfirm: this });">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id_karyawan" value="<?= $emp['id_karyawan'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus Karyawan">
-                                            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                                        <button type="submit" class="btn btn-danger btn-square" title="Hapus Karyawan">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                                         </button>
                                     </form>
                                 </div>
@@ -220,6 +266,9 @@ include __DIR__ . '/includes/header.php';
             </tbody>
         </table>
     </div>
+
+    <!-- Render Reusable Pagination Controls (Max 5 per page) -->
+    <?= render_pagination($page, $totalPages, ['search' => $search]) ?>
 </div>
 
 <!-- Modal Tambah Karyawan -->
@@ -240,7 +289,7 @@ include __DIR__ . '/includes/header.php';
 
             <div class="form-group">
                 <label class="form-label">Jabatan</label>
-                <input type="text" name="jabatan" class="form-control" placeholder="Contoh: Motivator Utama" required>
+                <input type="text" name="jabatan" class="form-control" placeholder="Contoh: Guru MTK" required>
             </div>
 
             <div class="form-group">
@@ -357,6 +406,9 @@ function editEmployee(emp) {
 }
 
 function showQRCode(empCode, nama, jabatan) {
+    const modal = document.getElementById('modalQRCode');
+    if (modal) modal.classList.add('print-id-card-modal');
+
     document.getElementById('qrEmpNama').textContent = nama;
     document.getElementById('qrEmpJabatan').textContent = empCode + ' • ' + jabatan;
     document.getElementById('qrAvatarCircle').textContent = nama.charAt(0).toUpperCase();

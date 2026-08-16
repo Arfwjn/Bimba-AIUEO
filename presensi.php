@@ -13,13 +13,95 @@ $today = date('Y-m-d');
 $stmtEmps = $pdo->query("SELECT id_karyawan, nama, jabatan FROM karyawan WHERE status_aktif = 1 ORDER BY nama ASC");
 $activeEmployees = $stmtEmps->fetchAll();
 
-// Fetch Today's Attendance List
+// Otomatisasi Pencatatan Status "Tidak Hadir" (Alpha)
+auto_mark_absent_employees($pdo);
+
+$message = '';
+$error = '';
+
+// Handle POST Actions (Input Izin / Sakit Manual oleh Admin)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        $error = 'Validasi keamanan CSRF Token gagal.';
+    } else {
+        $action = $_POST['action'] ?? '';
+        if ($action === 'input_izin_sakit') {
+            $empId = intval($_POST['id_karyawan'] ?? 0);
+            $tanggal = trim($_POST['tanggal'] ?? date('Y-m-d'));
+            $status = trim($_POST['status'] ?? 'Izin');
+            $keterangan = trim($_POST['keterangan'] ?? '');
+            $buktiFile = null;
+
+            if ($empId > 0 && in_array($status, ['Izin', 'Sakit'])) {
+                if (isset($_FILES['bukti_surat']) && $_FILES['bukti_surat']['error'] === UPLOAD_ERR_OK) {
+                    $tmpName = $_FILES['bukti_surat']['tmp_name'];
+                    $fileName = $_FILES['bukti_surat']['name'];
+                    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $allowedExts = ['jpg', 'jpeg', 'png', 'pdf'];
+
+                    if (in_array($ext, $allowedExts)) {
+                        $uploadDir = __DIR__ . '/assets/uploads/';
+                        if (!file_exists($uploadDir)) {
+                            mkdir($uploadDir, 0777, true);
+                        }
+                        $newFileName = 'surat_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                        if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                            $buktiFile = $newFileName;
+                        }
+                    }
+                }
+
+                $stmtCheck = $pdo->prepare("SELECT id_presensi FROM presensi WHERE id_karyawan = ? AND (tanggal = ? OR DATE(tanggal) = ?)");
+                $stmtCheck->execute([$empId, $tanggal, $tanggal]);
+                $existRow = $stmtCheck->fetch();
+
+                if ($existRow) {
+                    $stmtUpd = $pdo->prepare("
+                        UPDATE presensi 
+                        SET status = ?, keterangan = ?, bukti_surat = COALESCE(?, bukti_surat), status_validasi = 'Surat Izin/Sakit' 
+                        WHERE id_presensi = ?
+                    ");
+                    $stmtUpd->execute([$status, $keterangan, $buktiFile, $existRow['id_presensi']]);
+                } else {
+                    $stmtIns = $pdo->prepare("
+                        INSERT INTO presensi (id_karyawan, tanggal, jam_masuk, jam_keluar, status, keterangan, bukti_surat, status_validasi, raw_payload) 
+                        VALUES (?, ?, NULL, NULL, ?, ?, ?, 'Surat Izin/Sakit', 'MANUAL_PERMIT')
+                    ");
+                    $stmtIns->execute([$empId, $tanggal, $status, $keterangan, $buktiFile]);
+                }
+
+                $message = "Status {$status} karyawan berhasil dicatat dan diproses oleh sistem!";
+            } else {
+                $error = 'Harap pilih karyawan dan status izin/sakit yang valid.';
+            }
+        }
+    }
+}
+
+// Fetch Today's Attendance List with Pagination (Max 5 per page)
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$perPage = 5;
+
+$stmtCount = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM presensi p 
+    JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
+    WHERE (p.tanggal = ? OR DATE(p.tanggal) = ?)
+");
+$stmtCount->execute([$today, $today]);
+$totalRecords = intval($stmtCount->fetchColumn());
+$totalPages = ceil($totalRecords / $perPage);
+$page = max(1, min($page, max(1, $totalPages)));
+$offset = ($page - 1) * $perPage;
+
 $stmtToday = $pdo->prepare("
     SELECT p.*, k.nama, k.jabatan 
     FROM presensi p 
     JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
     WHERE (p.tanggal = ? OR DATE(p.tanggal) = ?) 
     ORDER BY p.id_presensi DESC
+    LIMIT {$perPage} OFFSET {$offset}
 ");
 $stmtToday->execute([$today, $today]);
 $todayList = $stmtToday->fetchAll();
@@ -65,16 +147,37 @@ include __DIR__ . '/includes/header.php';
                 <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromFile(this)">
             </label>
 
-            <!-- Presensi Cepat Dropdown & Instant Button -->
+            <!-- Presensi Cepat Searchable Custom Employee Combobox -->
             <div style="display: flex; gap: 8px; align-items: center; flex: 1; justify-content: flex-end; min-width: 260px;">
-                <select id="quickSelectEmp" class="form-control" style="flex: 1; max-width: 220px; height: 36px; font-size: 12px; padding: 0 8px;">
-                    <option value="">Pilih Karyawan</option>
-                    <?php foreach ($activeEmployees as $emp): ?>
-                        <option value="EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?>">
-                            EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?> - <?= htmlspecialchars($emp['nama']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <input type="hidden" id="quickSelectEmp" value="">
+                <div class="custom-emp-select-wrapper" style="position: relative; flex: 1; max-width: 240px;">
+                    <div class="custom-emp-select-trigger" style="height: 36px; font-size: 12px; padding: 0 10px;" onclick="toggleEmpSearchPopover('popoverEmpQuickScan', event)">
+                        <span id="quickSelectEmpLabel" style="color: var(--text-muted);">Pilih Karyawan</span>
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">expand_more</span>
+                    </div>
+
+                    <!-- Popover Panel with Live Search -->
+                    <div id="popoverEmpQuickScan" class="emp-search-popover" style="display: none; width: 260px;" onclick="event.stopPropagation();">
+                        <div class="emp-search-input-wrapper">
+                            <span class="material-symbols-outlined">search</span>
+                            <input type="text" class="emp-search-input" placeholder="Cari nama atau kode..." onkeyup="filterEmpOptions('popoverEmpQuickScan', this.value)">
+                        </div>
+                        <div class="emp-list-options">
+                            <?php foreach ($activeEmployees as $emp): 
+                                $eCode = 'EMP-' . sprintf('%03d', $emp['id_karyawan']);
+                                $eLabel = $eCode . ' - ' . htmlspecialchars($emp['nama']);
+                            ?>
+                                <div class="emp-option-item" 
+                                     data-search-text="<?= htmlspecialchars($emp['nama'] . ' ' . $eLabel) ?>" 
+                                     onclick="selectEmpOption('quickSelectEmp', 'quickSelectEmpLabel', '<?= $eCode ?>', '<?= addslashes($eLabel) ?>')">
+                                    <span><?= $eLabel ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                            <div class="emp-no-result" style="display: none; padding: 10px; text-align: center; color: var(--text-muted); font-size: 12px;">Karyawan tidak ditemukan</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button class="btn btn-primary btn-sm" style="height: 36px; white-space: nowrap;" onclick="executeQuickScan()">
                     <span class="material-symbols-outlined" style="font-size: 16px;">bolt</span>
                     <span>Instant</span>
@@ -133,6 +236,9 @@ include __DIR__ . '/includes/header.php';
             <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 8px;">verified_user</span>
             <p>Hasil pemindaian presensi akan ditampilkan di sini secara otomatis.</p>
         </div>
+
+        <!-- Render Reusable Pagination Controls (Max 5 per page) -->
+        <?= render_pagination($page, $totalPages) ?>
     </div>
 </div>
 
@@ -140,50 +246,72 @@ include __DIR__ . '/includes/header.php';
 <div class="panel">
     <div class="panel-header">
         <h3 class="panel-title">Riwayat Presensi Hari Ini (<?= date('d M Y') ?>)</h3>
-        <button class="btn btn-secondary btn-sm" onclick="location.reload()">
-            <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
-            <span>Refresh</span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" onclick="openModal('modalInputIzinSakit')">
+                <span class="material-symbols-outlined" style="font-size: 16px;">description</span>
+                <span>Input Izin / Sakit</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="location.reload()">
+                <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+                <span>Refresh</span>
+            </button>
+        </div>
     </div>
 
     <div class="table-container">
         <table class="table">
             <thead>
                 <tr>
-                    <th>Jam Masuk</th>
-                    <th>Jam Keluar</th>
                     <th>Kode Karyawan</th>
-                    <th>Nama Karyawan</th>
-                    <th>Jabatan</th>
-                    <th>Status Presensi</th>
-                    <th>Validasi Server</th>
+                    <th>Nama & Jabatan</th>
+                    <th>Presensi Masuk</th>
+                    <th>Presensi Keluar</th>
+                    <th style="text-align: center;">Bukti Surat</th>
+                    <th>Validasi System</th>
                 </tr>
             </thead>
             <tbody id="todayAttendanceTable">
                 <?php if (empty($todayList)): ?>
-                    <tr id="emptyTablePlaceholder"><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Belum ada presensi yang dicatat hari ini</td></tr>
+                    <tr id="emptyTablePlaceholder"><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Belum ada presensi yang dicatat hari ini</td></tr>
                 <?php else: ?>
-                    <?php foreach ($todayList as $p): ?>
+                    <?php foreach ($todayList as $p): 
+                        $b = get_attendance_detail_badges($p);
+                    ?>
                         <tr id="presRow_<?= $p['id_presensi'] ?>">
-                            <td><strong style="color: var(--status-success-text);"><?= htmlspecialchars($p['jam_masuk'] ?? '-') ?></strong></td>
+                            <td><strong>EMP-<?= sprintf('%03d', $p['id_karyawan']) ?></strong></td>
                             <td>
-                                <?php if (!empty($p['jam_keluar'])): ?>
-                                    <strong style="color: var(--status-warning-text);"><?= htmlspecialchars($p['jam_keluar']) ?></strong>
+                                <strong><?= htmlspecialchars($p['nama']) ?></strong><br>
+                                <small style="color: var(--text-muted); font-size: 11px;"><?= htmlspecialchars($p['jabatan']) ?></small>
+                            </td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                    <strong style="color: var(--status-success-text); font-size: 13px;"><?= htmlspecialchars($p['jam_masuk'] ?? '-') ?></strong>
+                                    <span class="badge badge-<?= $b['masuk']['class'] ?>"><?= htmlspecialchars($b['masuk']['text']) ?></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                    <strong style="color: var(--status-warning-text); font-size: 13px;"><?= htmlspecialchars($p['jam_keluar'] ?? '-') ?></strong>
+                                    <span class="badge badge-<?= $b['keluar']['class'] ?>"><?= htmlspecialchars($b['keluar']['text']) ?></span>
+                                </div>
+                            </td>
+                            <td style="text-align: center;">
+                                <?php if (!empty($p['bukti_surat'])): ?>
+                                    <a href="assets/uploads/<?= htmlspecialchars($p['bukti_surat']) ?>" target="_blank" class="btn btn-secondary btn-square" title="Lihat Surat Izin/Sakit">
+                                        <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                                    </a>
                                 <?php else: ?>
-                                    <span style="color: var(--text-muted); font-size: 12px;">Belum Keluar</span>
+                                    <span style="color: var(--text-muted); font-size: 11px;">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td>EMP-<?= sprintf('%03d', $p['id_karyawan']) ?></td>
-                            <td><strong><?= htmlspecialchars($p['nama']) ?></strong></td>
-                            <td><?= htmlspecialchars($p['jabatan']) ?></td>
                             <td>
-                                <span class="badge badge-<?= $p['status'] === 'Hadir' ? 'success' : 'warning' ?>">
-                                    <?= htmlspecialchars($p['status']) ?>
-                                    <?= !empty($p['jam_keluar']) ? ' (Selesai)' : '' ?>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge badge-success">AES Valid</span>
+                                <?php if (in_array($p['status'], ['Izin', 'Sakit'])): ?>
+                                    <span class="badge badge-info">Surat Admin</span>
+                                <?php elseif ($p['status'] === 'Tidak Hadir'): ?>
+                                    <span class="badge badge-danger">Sistem Auto</span>
+                                <?php else: ?>
+                                    <span class="badge badge-success">Valid AES</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -486,8 +614,22 @@ function displayResult(res) {
     card.style.display = 'block';
 
     if (res.success) {
-        badge.className = (res.action === 'check_out') ? 'badge badge-warning' : 'badge badge-success';
-        badge.textContent = (res.action === 'check_out') ? 'PRESENSI KELUAR' : res.status.toUpperCase();
+        if (res.action === 'check_out') {
+            badge.className = 'badge badge-info';
+            badge.textContent = 'PRESENSI KELUAR';
+        } else {
+            let st = (res.status || 'Hadir').toUpperCase();
+            badge.textContent = st;
+            if (st === 'HADIR') {
+                badge.className = 'badge badge-success'; // Hijau: Hadir & Tepat Waktu
+            } else if (st === 'TERLAMBAT') {
+                badge.className = 'badge badge-warning'; // Kuning/Oranye: Terlambat
+            } else if (st === 'TIDAK HADIR' || st === 'ALPHA') {
+                badge.className = 'badge badge-danger'; // Merah: Tidak Hadir (setelah jam keluar)
+            } else {
+                badge.className = 'badge badge-info';
+            }
+        }
         
         document.getElementById('resultAvatar').textContent = res.employee.nama.charAt(0).toUpperCase();
         document.getElementById('resultNama').textContent = res.employee.nama;
@@ -513,5 +655,86 @@ function displayResult(res) {
     }
 }
 </script>
+
+<!-- Modal Input Izin / Sakit (Surat Dokter / Permohonan Izin) -->
+<div class="modal-backdrop" id="modalInputIzinSakit">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="color: #000000ff;">description</span>
+                <span>Input Status Izin / Sakit Karyawan</span>
+            </h3>
+            <button class="btn-close" onclick="closeModal('modalInputIzinSakit')">&times;</button>
+        </div>
+        <form method="POST" action="presensi.php" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="input_izin_sakit">
+
+            <div class="modal-body">
+                <!-- Custom Searchable Employee Select -->
+                <div class="form-group custom-emp-select-wrapper" style="position: relative;">
+                    <label class="form-label">Pilih Karyawan</label>
+                    <input type="hidden" name="id_karyawan" id="modalPresensiEmpIdInput" required>
+                    <div class="custom-emp-select-trigger" onclick="toggleEmpSearchPopover('popoverEmpPresensiModal', event)">
+                        <span id="modalPresensiEmpLabel" style="color: var(--text-muted);">-- Pilih Karyawan --</span>
+                        <span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-muted);">expand_more</span>
+                    </div>
+
+                    <!-- Popover Panel with Live Search -->
+                    <div id="popoverEmpPresensiModal" class="emp-search-popover" style="display: none;" onclick="event.stopPropagation();">
+                        <div class="emp-search-input-wrapper">
+                            <span class="material-symbols-outlined">search</span>
+                            <input type="text" class="emp-search-input" placeholder="Cari nama atau kode..." onkeyup="filterEmpOptions('popoverEmpPresensiModal', this.value)">
+                        </div>
+                        <div class="emp-list-options">
+                            <?php foreach ($activeEmployees as $e): 
+                                $eLabel = 'EMP-' . sprintf('%03d', $e['id_karyawan']) . ' - ' . htmlspecialchars($e['nama']);
+                            ?>
+                                <div class="emp-option-item" 
+                                     data-search-text="<?= htmlspecialchars($e['nama'] . ' ' . $eLabel) ?>" 
+                                     onclick="selectEmpOption('modalPresensiEmpIdInput', 'modalPresensiEmpLabel', <?= $e['id_karyawan'] ?>, '<?= addslashes($eLabel) ?>')">
+                                    <span><?= $eLabel ?></span>
+                                    <small style="color: var(--text-muted); font-size: 11px;"><?= htmlspecialchars($e['jabatan']) ?></small>
+                                </div>
+                            <?php endforeach; ?>
+                            <div class="emp-no-result" style="display: none; padding: 10px; text-align: center; color: var(--text-muted); font-size: 12px;">Karyawan tidak ditemukan</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tanggal Presensi</label>
+                        <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Jenis Status</label>
+                        <select name="status" class="form-control" required>
+                            <option value="Izin">Izin (Pribadi/Dinas)</option>
+                            <option value="Sakit">Sakit (Surat Dokter)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Upload Gambar Surat Izin/Sakit (Foto DM)</label>
+                    <input type="file" name="bukti_surat" class="form-control" accept="image/png,image/jpeg,.pdf">
+                    <small style="color: var(--text-muted); font-size: 11px;">Format: PNG, JPG, JPEG, PDF (Max 2MB). Tangkapan layar / foto surat karyawan.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Keterangan / Alasan</label>
+                    <textarea name="keterangan" class="form-control" rows="2" placeholder="Catatan alasan permohonan izin atau diagnosa surat dokter..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalInputIzinSakit')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Presensi Izin/Sakit</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

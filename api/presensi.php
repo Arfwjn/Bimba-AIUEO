@@ -162,10 +162,44 @@ if (!$existing) {
     exit;
 } else {
     // -----------------------------------------------------------------
-    // ACTION 2: SCAN KELUAR (CHECK-OUT) ATAU STATUS LENGKAP
+    // RULES VERIFIKASI TANGGAL: COCOKKAN TANGGAL, BULAN, DAN TAHUN
+    // Mencegah error jika karyawan lupa presensi keluar kemarin dan melakukan scan hari ini
+    // -----------------------------------------------------------------
+    $existDateStr = date('Y-m-d', strtotime($existing['tanggal']));
+    if ($existDateStr !== $today) {
+        // Tanggal presensi masuk sebelumnya berbeda dengan hari ini (Lupa presensi keluar kemarin)
+        // Maka scan hari ini otomatis dianggap sebagai PRESENSI MASUK BARU HARI INI ($today)
+        $isLate = (strtotime($currentTime) > strtotime($workInLateSetting));
+        $statusKehadiran = $isLate ? 'Terlambat' : 'Hadir';
+        $msgCheckIn = $isLate 
+            ? "Presensi Masuk Dicatat (Terlambat - lewat {$workInLateSetting})" 
+            : "Presensi Masuk Dicatat (Tepat Waktu)!";
+
+        $stmtIns = $pdo->prepare("INSERT INTO presensi (id_karyawan, tanggal, jam_masuk, status, status_validasi, raw_payload) VALUES (?, ?, ?, ?, 'Valid', ?)");
+        $stmtIns->execute([$employee['id_karyawan'], $today, $currentTime, $statusKehadiran, $rawPayload]);
+
+        echo json_encode([
+            'success' => true,
+            'action' => 'check_in',
+            'status' => $statusKehadiran,
+            'message' => $msgCheckIn,
+            'employee' => [
+                'emp_code' => $formattedCode,
+                'nama' => $employee['nama'],
+                'jabatan' => $employee['jabatan']
+            ],
+            'tanggal' => date('d M Y', strtotime($today)),
+            'jam_masuk' => $currentTime,
+            'jam_keluar' => '-'
+        ]);
+        exit;
+    }
+
+    // -----------------------------------------------------------------
+    // ACTION 2: SCAN KELUAR (CHECK-OUT) PADA HARI YANG SAMA ($today)
     // -----------------------------------------------------------------
     if (empty($existing['jam_keluar']) || $existing['jam_keluar'] === '00:00:00' || $existing['jam_keluar'] === null) {
-        // Update Jam Keluar
+        // Update Jam Keluar hanya jika tanggal, bulan, tahun presensi masuk sama persis dengan hari ini
         $stmtUp = $pdo->prepare("UPDATE presensi SET jam_keluar = ? WHERE id_presensi = ?");
         $stmtUp->execute([$currentTime, $existing['id_presensi']]);
 

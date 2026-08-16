@@ -46,6 +46,7 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
+        modal.classList.remove('print-id-card-modal');
     }
 }
 
@@ -106,6 +107,90 @@ function formatRupiahInput(input) {
         input.value = '';
     }
 }
+
+/**
+ * Searchable Custom Employee Dropdown Select Component
+ */
+function toggleEmpSearchPopover(popoverId, e) {
+    if (e) e.stopPropagation();
+    const pop = document.getElementById(popoverId);
+    if (!pop) return;
+    
+    document.querySelectorAll('.emp-search-popover, .unified-picker-popover').forEach(p => {
+        if (p.id !== popoverId) p.style.display = 'none';
+    });
+
+    if (pop.style.display === 'none' || !pop.style.display) {
+        pop.style.display = 'block';
+        const input = pop.querySelector('.emp-search-input');
+        if (input) {
+            input.value = '';
+            filterEmpOptions(popoverId, '');
+            setTimeout(() => input.focus(), 50);
+        }
+    } else {
+        pop.style.display = 'none';
+    }
+}
+
+function filterEmpOptions(popoverId, searchVal) {
+    const pop = document.getElementById(popoverId);
+    if (!pop) return;
+    const items = pop.querySelectorAll('.emp-option-item');
+    const term = searchVal.toLowerCase().trim();
+
+    let matchCount = 0;
+    items.forEach(item => {
+        const text = item.getAttribute('data-search-text') || item.textContent;
+        if (!term || text.toLowerCase().includes(term)) {
+            item.style.display = 'flex';
+            matchCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    const noResult = pop.querySelector('.emp-no-result');
+    if (noResult) {
+        noResult.style.display = matchCount === 0 ? 'block' : 'none';
+    }
+}
+
+function selectEmpOption(hiddenInputId, labelId, empId, empText, formToSubmitId = null) {
+    const hiddenEl = document.getElementById(hiddenInputId);
+    if (hiddenEl) {
+        hiddenEl.value = empId;
+    }
+    const labelEl = document.getElementById(labelId);
+    if (labelEl) {
+        labelEl.textContent = empText;
+    }
+    
+    document.querySelectorAll('.emp-search-popover').forEach(p => p.style.display = 'none');
+
+    if (formToSubmitId) {
+        const form = document.getElementById(formToSubmitId);
+        if (form) form.submit();
+    }
+}
+
+document.addEventListener('click', function(e) {
+    // Close popovers if clicked outside
+    if (!e.target.closest('.custom-emp-select-wrapper') && !e.target.closest('.custom-date-picker-trigger')) {
+        document.querySelectorAll('.emp-search-popover').forEach(p => p.style.display = 'none');
+    }
+
+    // UX Enhancement: Click anywhere inside date / datetime input opens calendar picker automatically
+    if (e.target && (e.target.type === 'date' || e.target.type === 'datetime-local')) {
+        try {
+            if (typeof e.target.showPicker === 'function') {
+                e.target.showPicker();
+            }
+        } catch (err) {
+            // Ignore if already open or prevented
+        }
+    }
+});
 
 // Simple Lightweight HTML5 Canvas Chart Renderer
 function drawBarChart(canvasId, labels, dataValues, chartTitle = '', barColor = '#111111') {

@@ -94,9 +94,54 @@ function autoMigrateTables($pdo) {
     try { $pdo->exec("ALTER TABLE presensi ADD status_validasi VARCHAR(20) DEFAULT 'Valid'"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE presensi ADD raw_payload TEXT NULL"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE presensi ADD jam_keluar TIME NULL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE presensi ADD bukti_surat VARCHAR(255) NULL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE presensi ADD keterangan TEXT NULL"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE petty_cash ADD kategori VARCHAR(50) DEFAULT 'Operasional Unit'"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE petty_cash ADD saldo_setelah DECIMAL(15,2) DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE petty_cash ADD bukti_file VARCHAR(255) NULL"); } catch (Exception $e) {}
+}
+
+/**
+ * Otomatisasi Pencatatan Status "Tidak Hadir" (Alpha)
+ * Jika hingga batas jam kerja berakhir seorang karyawan aktif tidak melakukan presensi
+ * dan tidak ada pengajuan Izin/Sakit, sistem secara otomatis mencatat sebagai "Tidak Hadir".
+ */
+function auto_mark_absent_employees($pdo) {
+    try {
+        $todayStr = date('Y-m-d');
+        $currentTimeStr = date('H:i:s');
+        $workOutTime = get_system_setting('work_out_time', '16:00');
+
+        $stmtEmps = $pdo->query("SELECT id_karyawan FROM karyawan WHERE COALESCE(status_aktif, 1) = 1");
+        $activeEmployees = $stmtEmps->fetchAll(PDO::FETCH_COLUMN);
+
+        if (empty($activeEmployees)) return;
+
+        // Ambil rentang tanggal 14 hari ke belakang sampai hari ini
+        $datesToCheck = [];
+        for ($i = 0; $i <= 14; $i++) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            // Hanya periksa hari ini jika sudah melewati jam keluar
+            if ($date === $todayStr && $currentTimeStr < $workOutTime) {
+                continue;
+            }
+            $datesToCheck[] = $date;
+        }
+
+        foreach ($datesToCheck as $targetDate) {
+            foreach ($activeEmployees as $empId) {
+                $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM presensi WHERE id_karyawan = ? AND (tanggal = ? OR DATE(tanggal) = ?)");
+                $stmtCheck->execute([$empId, $targetDate, $targetDate]);
+                if (intval($stmtCheck->fetchColumn()) === 0) {
+                    $stmtIns = $pdo->prepare("
+                        INSERT INTO presensi (id_karyawan, tanggal, jam_masuk, jam_keluar, status, status_validasi, raw_payload) 
+                        VALUES (?, ?, NULL, NULL, 'Tidak Hadir', 'Sistem Auto', 'AUTO_ABSENT')
+                    ");
+                    $stmtIns->execute([$empId, $targetDate]);
+                }
+            }
+        }
+    } catch (Exception $e) {}
 }
 
 // Ambil nilai konfigurasi sistem dari tabel settings

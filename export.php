@@ -72,7 +72,8 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <?php if ($type === 'presensi'): ?>
     <?php
-    // Filtering Rekapitulasi Presensi Berdasarkan Bulan, Tahun, dan ID Karyawan
+    // Filtering Rekapitulasi Presensi Berdasarkan Tanggal Harian, Bulan, Tahun, dan ID Karyawan
+    $selectedDate = isset($_GET['tanggal']) ? trim($_GET['tanggal']) : '';
     $month = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
     $year = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
     $empId = isset($_GET['karyawan_id']) ? intval($_GET['karyawan_id']) : 0;
@@ -82,22 +83,32 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
         7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
     ];
 
-    if (DB_DRIVER === 'mysql') {
+    if (!empty($selectedDate)) {
         $sql = "
             SELECT p.*, k.nama, k.jabatan 
             FROM presensi p 
             JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
-            WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
+            WHERE (p.tanggal = ? OR DATE(p.tanggal) = ?)
         ";
-        $params = [$month, $year];
+        $params = [$selectedDate, $selectedDate];
     } else {
-        $sql = "
-            SELECT p.*, k.nama, k.jabatan 
-            FROM presensi p 
-            JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
-            WHERE strftime('%m', p.tanggal) = ? AND strftime('%Y', p.tanggal) = ?
-        ";
-        $params = [sprintf('%02d', $month), (string)$year];
+        if (DB_DRIVER === 'mysql') {
+            $sql = "
+                SELECT p.*, k.nama, k.jabatan 
+                FROM presensi p 
+                JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
+                WHERE MONTH(p.tanggal) = ? AND YEAR(p.tanggal) = ?
+            ";
+            $params = [$month, $year];
+        } else {
+            $sql = "
+                SELECT p.*, k.nama, k.jabatan 
+                FROM presensi p 
+                JOIN karyawan k ON p.id_karyawan = k.id_karyawan 
+                WHERE strftime('%m', p.tanggal) = ? AND strftime('%Y', p.tanggal) = ?
+            ";
+            $params = [sprintf('%02d', $month), (string)$year];
+        }
     }
 
     if ($empId > 0) {
@@ -125,16 +136,20 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
                 <th>Nama Karyawan</th>
                 <th>Jabatan</th>
                 <th>Jam Masuk</th>
+                <th>Status Presensi Masuk</th>
                 <th>Jam Keluar</th>
-                <th>Status Presensi</th>
-                <th>Validasi QR AES</th>
+                <th>Status Presensi Keluar</th>
+                <th>Bukti Surat Izin/Sakit</th>
+                <th>Validasi System</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($rows)): ?>
-                <tr><td colspan="9" class="center">Tidak ada data presensi pada periode ini</td></tr>
+                <tr><td colspan="11" class="center">Tidak ada data presensi pada periode ini</td></tr>
             <?php else: ?>
-                <?php $no = 1; foreach ($rows as $r): ?>
+                <?php $no = 1; foreach ($rows as $r): 
+                    $b = get_attendance_detail_badges($r);
+                ?>
                     <tr>
                         <td class="center"><?= $no++ ?></td>
                         <td class="center"><?= date('d/m/Y', strtotime($r['tanggal'])) ?></td>
@@ -142,9 +157,19 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
                         <td class="bold"><?= htmlspecialchars($r['nama']) ?></td>
                         <td><?= htmlspecialchars($r['jabatan']) ?></td>
                         <td class="center"><?= htmlspecialchars($r['jam_masuk'] ?? '-') ?></td>
+                        <td class="center <?= $b['masuk']['class'] === 'success' ? 'badge-success' : ($b['masuk']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
+                            <?= htmlspecialchars($b['masuk']['text']) ?>
+                        </td>
                         <td class="center"><?= !empty($r['jam_keluar']) ? htmlspecialchars($r['jam_keluar']) : '-' ?></td>
-                        <td class="center"><?= htmlspecialchars($r['status']) ?></td>
-                        <td class="badge-success">Valid (AES-256)</td>
+                        <td class="center <?= $b['keluar']['class'] === 'success' ? 'badge-success' : ($b['keluar']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
+                            <?= htmlspecialchars($b['keluar']['text']) ?>
+                        </td>
+                        <td class="center">
+                            <?= !empty($r['bukti_surat']) ? 'Ada Surat (' . htmlspecialchars($r['bukti_surat']) . ')' : '-' ?>
+                        </td>
+                        <td class="center">
+                            <?= in_array($r['status'], ['Izin', 'Sakit']) ? 'Surat Admin' : ($r['status'] === 'Tidak Hadir' ? 'Sistem Auto' : 'Valid (AES-256)') ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -153,12 +178,47 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <?php elseif ($type === 'petty_cash'): ?>
     <?php
-    // Filtering Transaksi Petty Cash Berdasarkan Jenis dan Kata Kunci Pencarian
+    // Filtering Transaksi Petty Cash Berdasarkan Harian, Bulanan, Tahunan, Jenis, dan Kata Kunci
+    $selectedDate = isset($_GET['tanggal']) ? trim($_GET['tanggal']) : '';
+    $month = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
+    $year = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
+    $modeTahun = isset($_GET['mode_tahun']) ? intval($_GET['mode_tahun']) : 0;
     $filterJenis = trim($_GET['jenis'] ?? '');
     $search = trim($_GET['search'] ?? '');
 
+    $monthsIndo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+        7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+
     $sql = "SELECT * FROM petty_cash WHERE 1=1";
     $params = [];
+
+    if (!empty($selectedDate)) {
+        $sql .= " AND (tanggal = ? OR DATE(tanggal) = ?)";
+        $params[] = $selectedDate;
+        $params[] = $selectedDate;
+        $periodeLabel = "Harian: " . date('d F Y', strtotime($selectedDate));
+    } elseif ($modeTahun === 1) {
+        if (DB_DRIVER === 'mysql') {
+            $sql .= " AND YEAR(tanggal) = ?";
+        } else {
+            $sql .= " AND strftime('%Y', tanggal) = ?";
+        }
+        $params[] = (string)$year;
+        $periodeLabel = "Tahun " . $year;
+    } else {
+        if (DB_DRIVER === 'mysql') {
+            $sql .= " AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
+            $params[] = $month;
+            $params[] = $year;
+        } else {
+            $sql .= " AND strftime('%m', tanggal) = ? AND strftime('%Y', tanggal) = ?";
+            $params[] = sprintf('%02d', $month);
+            $params[] = (string)$year;
+        }
+        $periodeLabel = $monthsIndo[$month] . " " . $year;
+    }
 
     if (!empty($filterJenis)) {
         $sql .= " AND jenis = ?";
@@ -169,7 +229,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
         $params[] = "%$search%";
         $params[] = "%$search%";
     }
-    $sql .= " ORDER BY id_transaksi DESC";
+    $sql .= " ORDER BY tanggal ASC, id_transaksi ASC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -178,7 +238,7 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
     <!-- Judul Header Laporan Petty Cash -->
     <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
-    <div class="subtitle">LAPORAN ARUS KAS KECIL (PETTY CASH)</div>
+    <div class="subtitle">LAPORAN ARUS KAS KECIL (PETTY CASH) - Periode: <?= htmlspecialchars($periodeLabel) ?></div>
 
     <!-- Tabel Data Transaksi Kas Kecil -->
     <table>

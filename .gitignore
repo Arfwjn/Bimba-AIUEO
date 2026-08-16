@@ -1,0 +1,34 @@
+# ============================================================
+# Git Ignore Rule for biMBA AIUEO Thesis Project
+# ============================================================
+
+# Environment & Secret Configurations (CRITICAL: Do NOT upload .env!)
+.env
+.env.local
+.env.*.local
+
+# Vendor & Dependency Folders
+/vendor/
+node_modules/
+
+# SQLite Local Database Files & Journals
+/database/*.sqlite
+/database/*.sqlite-journal
+/database/*.db
+
+# Uploaded Media & Proof Files (Keep folder structure with .gitkeep)
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+
+# Operating System & IDE Specific Files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Scratch Scripts & Build Artifacts
+/scratch/
+create_docx_report.py
+*.pyc
+__pycache__/

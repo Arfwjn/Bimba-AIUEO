@@ -56,15 +56,47 @@ include __DIR__ . '/includes/header.php';
             <span>Kembali ke Data Karyawan</span>
         </a>
     </div>
-    <form method="GET" action="karyawan_portal.php" style="display: flex; gap: 12px; align-items: center; max-width: 480px;">
-        <select name="emp_id" class="form-control" onchange="this.form.submit()">
-            <?php foreach ($activeEmployees as $e): ?>
-                <option value="<?= $e['id_karyawan'] ?>" <?= $selectedEmpId === $e['id_karyawan'] ? 'selected' : '' ?>>
-                    EMP-<?= sprintf('%03d', $e['id_karyawan']) ?> - <?= htmlspecialchars($e['nama']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" class="btn btn-secondary">Tampilkan ID</button>
+    <form method="GET" action="karyawan_portal.php" id="portalEmpForm" style="max-width: 480px;">
+        <input type="hidden" name="emp_id" id="portalEmpIdInput" value="<?= $selectedEmpId ?>">
+        
+        <div class="form-group custom-emp-select-wrapper" style="position: relative; margin: 0;">
+            <div class="custom-emp-select-trigger" onclick="toggleEmpSearchPopover('popoverEmpPortal', event)">
+                <span id="portalEmpLabel">
+                    <?php
+                    $curEmpText = 'Pilih Karyawan...';
+                    foreach ($activeEmployees as $e) {
+                        if ($e['id_karyawan'] === $selectedEmpId) {
+                            $curEmpText = 'EMP-' . sprintf('%03d', $e['id_karyawan']) . ' - ' . htmlspecialchars($e['nama']);
+                            break;
+                        }
+                    }
+                    echo $curEmpText;
+                    ?>
+                </span>
+                <span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-muted);">expand_more</span>
+            </div>
+
+            <!-- Popover Panel with Search Input -->
+            <div id="popoverEmpPortal" class="emp-search-popover" style="display: none;" onclick="event.stopPropagation();">
+                <div class="emp-search-input-wrapper">
+                    <span class="material-symbols-outlined">search</span>
+                    <input type="text" class="emp-search-input" placeholder="Cari nama atau kode karyawan..." onkeyup="filterEmpOptions('popoverEmpPortal', this.value)">
+                </div>
+                <div class="emp-list-options">
+                    <?php foreach ($activeEmployees as $e): 
+                        $eLabel = 'EMP-' . sprintf('%03d', $e['id_karyawan']) . ' - ' . htmlspecialchars($e['nama']);
+                    ?>
+                        <div class="emp-option-item <?= $selectedEmpId === $e['id_karyawan'] ? 'selected' : '' ?>" 
+                             data-search-text="<?= htmlspecialchars($e['nama'] . ' ' . $eLabel) ?>" 
+                             onclick="selectEmpOption('portalEmpIdInput', 'portalEmpLabel', <?= $e['id_karyawan'] ?>, '<?= addslashes($eLabel) ?>', 'portalEmpForm')">
+                            <span><?= $eLabel ?></span>
+                            <small style="color: var(--text-muted); font-size: 11px;"><?= htmlspecialchars($e['jabatan']) ?></small>
+                        </div>
+                    <?php endforeach; ?>
+                    <div class="emp-no-result" style="display: none; padding: 10px; text-align: center; color: var(--text-muted); font-size: 12px;">Karyawan tidak ditemukan</div>
+                </div>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -140,7 +172,24 @@ include __DIR__ . '/includes/header.php';
                         <?php if (empty($personalAttendance)): ?>
                             <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Belum ada riwayat presensi recorded</td></tr>
                         <?php else: ?>
-                            <?php foreach ($personalAttendance as $pa): ?>
+                            <?php foreach ($personalAttendance as $pa): 
+                                $st = $pa['status'] ?? 'Hadir';
+                                $badgeClass = 'success';
+                                $valText = 'AES Valid';
+                                $valClass = 'success';
+
+                                if ($st === 'Terlambat') {
+                                    $badgeClass = 'warning';
+                                } elseif (in_array($st, ['Izin', 'Sakit'])) {
+                                    $badgeClass = 'warning';
+                                    $valText = 'Surat Admin';
+                                    $valClass = 'info';
+                                } elseif ($st === 'Tidak Hadir') {
+                                    $badgeClass = 'danger';
+                                    $valText = 'Sistem Auto';
+                                    $valClass = 'danger';
+                                }
+                            ?>
                                 <tr>
                                     <td><strong><?= date('d/m/Y', strtotime($pa['tanggal'])) ?></strong></td>
                                     <td><strong style="color: var(--status-success-text);"><?= htmlspecialchars($pa['jam_masuk'] ?? '-') ?></strong></td>
@@ -152,11 +201,15 @@ include __DIR__ . '/includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?= $pa['status'] === 'Hadir' ? 'success' : 'warning' ?>">
-                                            <?= htmlspecialchars($pa['status']) ?>
+                                        <span class="badge badge-<?= $badgeClass ?>">
+                                            <?= htmlspecialchars($st) ?>
                                         </span>
                                     </td>
-                                    <td><span class="badge badge-success">AES Valid</span></td>
+                                    <td>
+                                        <span class="badge badge-<?= $valClass ?>">
+                                            <?= htmlspecialchars($valText) ?>
+                                        </span>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

@@ -375,7 +375,25 @@ a {
     border: 2px solid var(--border-color);
     border-radius: 6px;
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: all 0.15s ease;
+}
+
+.form-control:hover {
+    background-color: var(--surface-muted, #F3F4F6);
+    border-color: var(--border-color, #111111);
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
+}
+
+.btn-secondary:hover {
+    background-color: var(--surface-muted, #F3F4F6);
+    border-color: var(--border-color, #111111);
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
+}
+
+.form-control:focus {
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+    border-color: var(--border-color, #111111);
 }
 
 select.form-control {
@@ -396,9 +414,69 @@ textarea.form-control {
     resize: vertical;
 }
 
-.form-control:focus {
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
-    border-color: var(--border-color);
+/* Date & DateTime Input Pointer & Calendar Icon UX */
+input[type="date"], input[type="datetime-local"] {
+    cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    background-color: var(--surface-muted, #F3F4F6);
+}
+
+/* Custom File Input Button (Application Theme - Bold Black Outline & Dark Button) */
+.form-control[type="file"] {
+    padding: 5px 8px;
+    height: auto;
+    cursor: pointer;
+}
+
+.form-control[type="file"]::file-selector-button,
+input[type="file"]::file-selector-button {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    margin-right: 12px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color, #111111);
+    background-color: var(--border-color, #111111);
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.form-control[type="file"]::file-selector-button:hover,
+input[type="file"]::file-selector-button:hover {
+    background-color: #333333;
+    border-color: #333333;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    margin-right: 12px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color, #111111);
+    background-color: var(--border-color, #111111);
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: #333333;
+    border-color: #333333;
 }
 
 .form-row {
@@ -431,6 +509,8 @@ textarea.form-control {
 
 .btn-primary:hover {
     background-color: #333333;
+    border-color: #111111;
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
 }
 
 .btn-secondary {
@@ -438,24 +518,36 @@ textarea.form-control {
     color: var(--text-primary);
 }
 
-.btn-secondary:hover {
-    background-color: var(--surface-muted);
-}
-
 .btn-danger {
-    background-color: var(--status-danger-bg);
-    color: var(--status-danger-text);
-    border-color: var(--status-danger-border);
+    background-color: #FFFFFF;
+    color: #DC2626;
+    border: 2px solid var(--border-color, #111111);
 }
 
 .btn-danger:hover {
-    background-color: #FCA5A5;
+    background-color: #FFF1F2;
+    color: #BE123C;
+    border-color: var(--border-color, #111111);
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
 }
 
 .btn-sm {
     height: 34px;
     padding: 0 12px;
     font-size: 12px;
+}
+
+/* Square Icon Button Utility (32px x 32px Perfect Square) */
+.btn-square {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
 }
 
 /* Table Styling */
@@ -495,46 +587,383 @@ textarea.form-control {
     background-color: #F7F7F7;
 }
 
+/* Compact Table Utility (Fits Side-by-Side Panels Without Horizontal Scrollbar) */
+.table-compact th {
+    padding: 10px 8px;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+}
+
+.table-compact td {
+    padding: 10px 8px;
+    font-size: 13px;
+}
+
+.table-nowrap {
+    white-space: nowrap;
+}
+
 .table tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Badges */
+/* Custom Application-Theme Comic/Bold Status Badges (Matching App Theme) */
 .badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     padding: 4px 10px;
     font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    border-radius: 6px;
+    border: 2px solid var(--border-color, #111111);
+    background-color: #FFFFFF;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    box-shadow: none;
+    transition: all 0.15s ease;
+}
+
+/* Remove dot indicator */
+.badge::before {
+    display: none !important;
+}
+
+/* Success / Hadir / Aktif / Pemasukan Badge (Green Text, Bold Black Outline) */
+.badge-success {
+    background-color: #FFFFFF;
+    color: #16A34A;
+    border-color: var(--border-color, #111111);
+}
+
+/* Danger / Non-Aktif / Alpha / Pengeluaran Badge (Red Text, Bold Black Outline) */
+.badge-danger {
+    background-color: #FFFFFF;
+    color: #DC2626;
+    border-color: var(--border-color, #111111);
+}
+
+/* Warning / Terlambat / Pulang Awal Badge (Orange/Amber Text, Bold Black Outline) */
+.badge-warning {
+    background-color: #FFFFFF;
+    color: #D97706;
+    border-color: var(--border-color, #111111);
+}
+
+/* Info / AES Valid Badge (Blue Text, Bold Black Outline) */
+.badge-info {
+    background-color: #FFFFFF;
+    color: #2563EB;
+    border-color: var(--border-color, #111111);
+}
+
+/* Custom Month-Year Datepicker Component (App Theme) */
+.custom-month-picker-trigger {
+    height: 40px;
+    background-color: var(--surface-color);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.custom-month-picker-trigger:hover {
+    border-color: #000000;
+    background-color: var(--surface-muted);
+}
+
+/* Unified Custom Date & Month Picker Component */
+.custom-date-picker-trigger {
+    height: 40px;
+    padding: 0 14px;
+    background-color: var(--surface-color, #FFFFFF);
+    border: 2px solid var(--border-color, #111111);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.custom-date-picker-trigger:hover {
+    border-color: var(--border-color, #111111);
+    background-color: var(--surface-muted, #F3F4F6);
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
+}
+
+.unified-picker-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 9999;
+    width: 320px;
+    background-color: #FFFFFF !important;
+    border: 2px solid var(--border-color, #111111);
+    border-radius: 12px;
+    box-shadow: 4px 6px 0 var(--border-color, #111111);
+    padding: 14px;
+}
+
+.picker-tabs {
+    display: flex;
+    gap: 4px;
+    background: #F3F4F6;
+    padding: 3px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color, #111111);
+}
+
+.picker-tab {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #6B7280);
+    transition: all 0.15s ease;
+    font-family: var(--font-sans);
+}
+
+.picker-tab.active {
+    background: #FFFFFF;
+    color: var(--text-primary, #111111);
+    border: 1px solid var(--border-color, #111111);
+    font-weight: 700;
+    box-shadow: 1px 1px 0 var(--border-color, #111111);
+}
+
+.day-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
     font-size: 11px;
     font-weight: 700;
-    border-radius: 4px;
+    color: var(--text-muted, #6B7280);
+    margin-bottom: 6px;
+}
+
+.day-grid-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.day-chip {
+    padding: 6px 0;
+    border-radius: 6px;
     border: 1px solid transparent;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    color: var(--text-primary, #111111);
 }
 
-.badge-success {
-    background-color: var(--status-success-bg);
-    color: var(--status-success-text);
-    border-color: var(--status-success-border);
+.day-chip:hover {
+    background: var(--surface-muted, #F3F4F6);
+    border-color: var(--border-color, #111111);
 }
 
-.badge-danger {
-    background-color: var(--status-danger-bg);
-    color: var(--status-danger-text);
-    border-color: var(--status-danger-border);
+.day-chip.other-month {
+    color: #D1D5DB;
 }
 
-.badge-warning {
-    background-color: var(--status-warning-bg);
-    color: var(--status-warning-text);
-    border-color: var(--status-warning-border);
+.day-chip.active {
+    background: var(--border-color, #111111);
+    color: #FFFFFF;
+    font-weight: 700;
+    border-color: var(--border-color, #111111);
 }
 
-.badge-info {
-    background-color: var(--status-info-bg);
-    color: var(--status-info-text);
-    border-color: var(--status-info-border);
+.day-chip.today {
+    border-color: var(--border-color, #111111);
+    font-weight: 700;
+}
+
+/* Custom Searchable Employee Dropdown Component */
+.custom-emp-select-trigger {
+    height: 40px;
+    padding: 0 14px;
+    background-color: var(--surface-color, #FFFFFF);
+    border: 2px solid var(--border-color, #111111);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    transition: all 0.15s ease;
+}
+
+.custom-emp-select-trigger:hover {
+    border-color: var(--border-color, #111111);
+    background-color: var(--surface-muted, #F3F4F6);
+    box-shadow: 2px 2px 0 var(--border-color, #111111);
+}
+
+.emp-search-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    background-color: #FFFFFF !important;
+    border: 2px solid var(--border-color, #111111);
+    border-radius: 10px;
+    box-shadow: 4px 6px 0 var(--border-color, #111111);
+    padding: 10px;
+    min-width: 250px;
+}
+
+.emp-search-input-wrapper {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.emp-search-input-wrapper .material-symbols-outlined {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--text-muted, #6B7280);
+    pointer-events: none;
+}
+
+.emp-search-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 10px 0 32px;
+    border: 1px solid var(--border-color, #111111);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.emp-search-input:focus {
+    border-color: var(--border-color, #111111);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+.emp-list-options {
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.emp-option-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-primary, #111111);
+}
+
+.emp-option-item:hover {
+    background: var(--surface-muted, #F3F4F6);
+}
+
+.month-picker-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 999;
+    width: 290px;
+    background-color: var(--surface-color);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 14px;
+}
+
+.month-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-muted);
+}
+
+.btn-picker-nav {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-picker-nav:hover {
+    background-color: var(--border-color);
+    color: #FFFFFF;
+}
+
+.month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.month-chip {
+    padding: 8px 0;
+    border-radius: 6px;
+    border: 1px solid var(--border-muted);
+    background-color: var(--surface-color);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+}
+
+.month-chip:hover {
+    border-color: var(--border-color);
+    background-color: var(--surface-muted);
+}
+
+.month-chip.active {
+    background-color: var(--border-color);
+    color: #FFFFFF;
+    border-color: var(--border-color);
+    font-weight: 700;
 }
 
 /* Alerts */
@@ -569,29 +998,33 @@ textarea.form-control {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 10000;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
 }
 
 .modal-backdrop.show {
+    display: flex !important;
     opacity: 1;
     pointer-events: auto;
 }
 
-.modal-content {
-    background-color: var(--surface-color);
-    border: 3px solid var(--border-color);
+.modal, .modal-content {
+    background-color: #FFFFFF !important;
+    color: var(--text-primary, #111111);
+    border: 3px solid var(--border-color, #111111);
     border-radius: 12px;
     width: 90%;
-    max-width: 540px;
+    max-width: 520px;
     padding: 24px;
-    box-shadow: 6px 6px 0 var(--border-color);
+    box-shadow: 6px 6px 0 var(--border-color, #111111);
+    position: relative;
+    z-index: 10001;
 }
 
 .modal-header {
@@ -600,15 +1033,22 @@ textarea.form-control {
     justify-content: space-between;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color, #111111);
 }
 
-.modal-close {
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.btn-close, .modal-close {
     background: none;
     border: none;
     font-size: 24px;
     cursor: pointer;
     line-height: 1;
+    color: var(--text-primary, #111111);
 }
 
 /* Scanner & QR Section */
