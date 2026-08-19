@@ -56,16 +56,23 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
     .title { font-size: 16pt; font-weight: bold; text-align: center; }
     .subtitle { font-size: 11pt; color: #555555; text-align: center; margin-bottom: 15px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th { background-color: #2563EB; color: #FFFFFF; font-weight: bold; border: 1px solid #000000; padding: 10px; text-align: center; font-size: 11pt; }
-    td { border: 1px solid #D1D5DB; padding: 8px 10px; color: #111111; vertical-align: middle; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; table-layout: fixed; }
+    th { background-color: #2563EB; color: #FFFFFF; font-weight: bold; border: 1px solid #000000; padding: 10px; text-align: center; font-size: 11pt; vertical-align: middle; }
+    td { border: 1px solid #D1D5DB; padding: 8px 10px; color: #111111; vertical-align: middle; mso-number-format:"\@"; }
     tr:nth-child(even) td { background-color: #F9FAFB; }
+    
+    /* MS Excel Specific Data Format Classes */
+    .txt-cell { mso-number-format:"\@"; white-space: nowrap; }
+    .date-cell { mso-number-format:"Short Date"; white-space: nowrap; text-align: center; }
+    .time-cell { mso-number-format:"hh:mm:ss"; white-space: nowrap; text-align: center; }
+    .num-cell { mso-number-format:"\#\,\#\#0"; text-align: right; white-space: nowrap; }
+    
     .center { text-align: center; }
     .right { text-align: right; }
     .bold { font-weight: bold; }
-    .badge-success { background-color: #DCFCE7; color: #166534; font-weight: bold; text-align: center; }
-    .badge-warning { background-color: #FEF3C7; color: #92400E; font-weight: bold; text-align: center; }
-    .badge-danger { background-color: #FEE2E2; color: #991B1B; font-weight: bold; text-align: center; }
+    .badge-success { background-color: #DCFCE7; color: #166534; font-weight: bold; text-align: center; mso-number-format:"\@"; }
+    .badge-warning { background-color: #FEF3C7; color: #92400E; font-weight: bold; text-align: center; mso-number-format:"\@"; }
+    .badge-danger { background-color: #FEE2E2; color: #991B1B; font-weight: bold; text-align: center; mso-number-format:"\@"; }
 </style>
 </head>
 <body>
@@ -130,44 +137,44 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     <table>
         <thead>
             <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Kode Karyawan</th>
-                <th>Nama Karyawan</th>
-                <th>Jabatan</th>
-                <th>Jam Masuk</th>
-                <th>Status Presensi Masuk</th>
-                <th>Jam Keluar</th>
-                <th>Status Presensi Keluar</th>
-                <th>Bukti Surat Izin/Sakit</th>
-                <th>Validasi System</th>
+                <th style="width: 45px;">No</th>
+                <th style="width: 130px;">Tanggal</th>
+                <th style="width: 130px;">Kode Karyawan</th>
+                <th style="width: 220px;">Nama Karyawan</th>
+                <th style="width: 170px;">Jabatan</th>
+                <th style="width: 110px;">Jam Masuk</th>
+                <th style="width: 180px;">Status Presensi Masuk</th>
+                <th style="width: 110px;">Jam Keluar</th>
+                <th style="width: 180px;">Status Presensi Keluar</th>
+                <th style="width: 180px;">Bukti Surat Izin/Sakit</th>
+                <th style="width: 150px;">Validasi System</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($rows)): ?>
-                <tr><td colspan="11" class="center">Tidak ada data presensi pada periode ini</td></tr>
+                <tr><td colspan="11" class="center txt-cell">Tidak ada data presensi pada periode ini</td></tr>
             <?php else: ?>
                 <?php $no = 1; foreach ($rows as $r): 
                     $b = get_attendance_detail_badges($r);
                 ?>
                     <tr>
-                        <td class="center"><?= $no++ ?></td>
-                        <td class="center"><?= date('d/m/Y', strtotime($r['tanggal'])) ?></td>
-                        <td class="center">EMP-<?= sprintf('%03d', $r['id_karyawan']) ?></td>
-                        <td class="bold"><?= htmlspecialchars($r['nama']) ?></td>
-                        <td><?= htmlspecialchars($r['jabatan']) ?></td>
-                        <td class="center"><?= htmlspecialchars($r['jam_masuk'] ?? '-') ?></td>
-                        <td class="center <?= $b['masuk']['class'] === 'success' ? 'badge-success' : ($b['masuk']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
+                        <td class="center txt-cell"><?= $no++ ?></td>
+                        <td class="center date-cell"><?= date('d/m/Y', strtotime($r['tanggal'])) ?></td>
+                        <td class="center txt-cell bold">EMP-<?= sprintf('%03d', $r['id_karyawan']) ?></td>
+                        <td class="bold txt-cell"><?= htmlspecialchars($r['nama']) ?></td>
+                        <td class="txt-cell"><?= htmlspecialchars($r['jabatan']) ?></td>
+                        <td class="center time-cell"><?= htmlspecialchars($r['jam_masuk'] ?? '-') ?></td>
+                        <td class="center txt-cell <?= $b['masuk']['class'] === 'success' ? 'badge-success' : ($b['masuk']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
                             <?= htmlspecialchars($b['masuk']['text']) ?>
                         </td>
-                        <td class="center"><?= !empty($r['jam_keluar']) ? htmlspecialchars($r['jam_keluar']) : '-' ?></td>
-                        <td class="center <?= $b['keluar']['class'] === 'success' ? 'badge-success' : ($b['keluar']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
+                        <td class="center time-cell"><?= !empty($r['jam_keluar']) ? htmlspecialchars($r['jam_keluar']) : '-' ?></td>
+                        <td class="center txt-cell <?= $b['keluar']['class'] === 'success' ? 'badge-success' : ($b['keluar']['class'] === 'warning' ? 'badge-warning' : 'badge-danger') ?>">
                             <?= htmlspecialchars($b['keluar']['text']) ?>
                         </td>
-                        <td class="center">
+                        <td class="center txt-cell">
                             <?= !empty($r['bukti_surat']) ? 'Ada Surat (' . htmlspecialchars($r['bukti_surat']) . ')' : '-' ?>
                         </td>
-                        <td class="center">
+                        <td class="center txt-cell">
                             <?= in_array($r['status'], ['Izin', 'Sakit']) ? 'Surat Admin' : ($r['status'] === 'Tidak Hadir' ? 'Sistem Auto' : 'Valid (AES-256)') ?>
                         </td>
                     </tr>
@@ -244,29 +251,28 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     <table>
         <thead>
             <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Jenis Transaksi</th>
-                <th>Kategori / Keterangan</th>
-                <th>Nominal (Rp)</th>
-                <th>Saldo Akhir (Rp)</th>
+                <th style="width: 45px;">No</th>
+                <th style="width: 130px;">Tanggal</th>
+                <th style="width: 160px;">Jenis Transaksi</th>
+                <th style="width: 320px;">Kategori / Keterangan</th>
+                <th style="width: 150px;">Nominal (Rp)</th>
+                <th style="width: 150px;">Saldo Akhir (Rp)</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($rows)): ?>
-                <tr><td colspan="6" class="center">Tidak ada data transaksi petty cash</td></tr>
+                <tr><td colspan="6" class="center txt-cell">Tidak ada data transaksi petty cash</td></tr>
             <?php else: ?>
                 <?php $no = 1; foreach ($rows as $r): ?>
                     <tr>
-                        <td class="center"><?= $no++ ?></td>
-                        <td class="center"><?= date('d/m/Y', strtotime($r['tanggal'] ?? 'now')) ?></td>
-                        <td class="center bold"><?= htmlspecialchars($r['jenis'] ?? 'Pengeluaran') ?></td>
-                        <td>
-                            <strong><?= htmlspecialchars($r['kategori'] ?? $r['keterangan'] ?? 'Transaksi Kas') ?></strong><br>
-                            <small><?= htmlspecialchars($r['keterangan'] ?? '-') ?></small>
+                        <td class="center txt-cell"><?= $no++ ?></td>
+                        <td class="center date-cell"><?= date('d/m/Y', strtotime($r['tanggal'] ?? 'now')) ?></td>
+                        <td class="center txt-cell bold"><?= htmlspecialchars($r['jenis'] ?? 'Pengeluaran') ?></td>
+                        <td class="txt-cell">
+                            <strong><?= htmlspecialchars($r['kategori'] ?? $r['keterangan'] ?? 'Transaksi Kas') ?></strong> - <?= htmlspecialchars($r['keterangan'] ?? '-') ?>
                         </td>
-                        <td class="right bold">Rp <?= number_format($r['nominal'] ?? 0, 0, ',', '.') ?></td>
-                        <td class="right bold">Rp <?= number_format($r['saldo_setelah'] ?? $r['nominal'] ?? 0, 0, ',', '.') ?></td>
+                        <td class="right num-cell bold">Rp <?= number_format($r['nominal'] ?? 0, 0, ',', '.') ?></td>
+                        <td class="right num-cell bold">Rp <?= number_format($r['saldo_setelah'] ?? $r['nominal'] ?? 0, 0, ',', '.') ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -288,25 +294,25 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     <table>
         <thead>
             <tr>
-                <th>No</th>
-                <th>Kode Karyawan</th>
-                <th>Nama Lengkap Karyawan</th>
-                <th>Jabatan</th>
-                <th>Status Aktif</th>
+                <th style="width: 45px;">No</th>
+                <th style="width: 140px;">Kode Karyawan</th>
+                <th style="width: 250px;">Nama Lengkap Karyawan</th>
+                <th style="width: 180px;">Jabatan</th>
+                <th style="width: 130px;">Status Aktif</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($rows)): ?>
-                <tr><td colspan="5" class="center">Tidak ada data karyawan</td></tr>
+                <tr><td colspan="5" class="center txt-cell">Tidak ada data karyawan</td></tr>
             <?php else: ?>
                 <?php $no = 1; foreach ($rows as $r): ?>
                     <?php $isAktif = isset($r['status_aktif']) ? intval($r['status_aktif']) : 1; ?>
                     <tr>
-                        <td class="center"><?= $no++ ?></td>
-                        <td class="center bold">EMP-<?= sprintf('%03d', $r['id_karyawan']) ?></td>
-                        <td class="bold"><?= htmlspecialchars($r['nama']) ?></td>
-                        <td><?= htmlspecialchars($r['jabatan']) ?></td>
-                        <td class="<?= $isAktif === 1 ? 'badge-success' : 'badge-danger' ?>">
+                        <td class="center txt-cell"><?= $no++ ?></td>
+                        <td class="center txt-cell bold">EMP-<?= sprintf('%03d', $r['id_karyawan']) ?></td>
+                        <td class="bold txt-cell"><?= htmlspecialchars($r['nama']) ?></td>
+                        <td class="txt-cell"><?= htmlspecialchars($r['jabatan']) ?></td>
+                        <td class="center txt-cell <?= $isAktif === 1 ? 'badge-success' : 'badge-danger' ?>">
                             <?= $isAktif === 1 ? 'Aktif' : 'Non-Aktif' ?>
                         </td>
                     </tr>
