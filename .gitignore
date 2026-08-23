@@ -19,6 +19,7 @@ node_modules/
 # Uploaded Media & Proof Files (Keep folder structure with .gitkeep)
 /assets/uploads/*
 !/assets/uploads/.gitkeep
+!/assets/uploads/.htaccess
 
 # Operating System & IDE Specific Files
 .DS_Store
