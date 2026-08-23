@@ -39,37 +39,32 @@ function getDB() {
 
             return $pdo;
         } catch (PDOException $e) {
-            if (APP_DEBUG) {
-                die("MySQL Connection Error: " . $e->getMessage());
-            } else {
-                die("Koneksi ke database MySQL gagal. Pastikan service MySQL pada XAMPP sudah berjalan.");
-            }
+            // Fallback otomatis ke database SQLite jika service MySQL XAMPP tidak aktif
         }
-    } else {
-        // Mode cadangan menggunakan database SQLite
-        $dbDir = __DIR__ . '/../database';
-        if (!file_exists($dbDir)) {
-            mkdir($dbDir, 0777, true);
+    }
+
+    // Mode cadangan menggunakan database SQLite
+    $dbDir = __DIR__ . '/../database';
+    if (!file_exists($dbDir)) {
+        mkdir($dbDir, 0777, true);
+    }
+    
+    $dbFile = $dbDir . '/bimba.sqlite';
+    $isNew = !file_exists($dbFile);
+
+    try {
+        $pdo = new PDO("sqlite:" . $dbFile);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        if ($isNew || filesize($dbFile) === 0) {
+            initDatabase($pdo);
+        } else {
+            autoMigrateTables($pdo);
         }
-        
-        $dbFile = $dbDir . '/bimba.sqlite';
-        $isNew = !file_exists($dbFile);
-
-        try {
-            $pdo = new PDO("sqlite:" . $dbFile);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
-            if ($isNew || filesize($dbFile) === 0) {
-                initDatabase($pdo);
-            } else {
-                autoMigrateTables($pdo);
-            }
-        } catch (PDOException $e) {
-            die("SQLite Connection Error: " . $e->getMessage());
-        }
-
         return $pdo;
+    } catch (PDOException $e) {
+        die("SQLite Connection Error: " . $e->getMessage());
     }
 }
 

@@ -173,12 +173,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="form-group">
             <label class="form-label">Username Admin</label>
-            <input type="text" name="username" class="form-control" placeholder="Masukkan username" required value="admin">
+            <input type="text" name="username" class="form-control" placeholder="Masukkan username" required value="Imel">
         </div>
 
         <div class="form-group">
             <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Masukkan password" required value="admin123">
+            <input type="password" name="password" class="form-control" placeholder="Masukkan password" required value="imel123">
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
