@@ -1,5 +1,14 @@
 <?php
-// config/env.php
+/**
+ * Modul Parser & Loader Variabel Lingkungan (.env)
+ * 
+ * Membaca file konfigurasi .env, memuat variabel ke dalam getenv(), $_ENV, dan $_SERVER,
+ * serta menyediakan fungsi penolong env() dengan dukungan nilai bawaan (default).
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Configuration
+ * @author      Developer Team biMBA AIUEO
+ */
 
 function load_env($filePath) {
     if (!file_exists($filePath)) {

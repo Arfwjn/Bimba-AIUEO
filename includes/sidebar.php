@@ -1,5 +1,14 @@
 <?php
-// includes/sidebar.php
+/**
+ * Komponen Sidebar Navigasi Administrator biMBA AIUEO
+ * 
+ * Menyediakan menu navigasi utama (Dashboard, Data Karyawan, Presensi QR, Petty Cash, Laporan, Pengaturan),
+ * indikator identitas unit, profil pengguna aktif, serta elemen overlay backdrop mobile.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Templates
+ * @author      Developer Team biMBA AIUEO
+ */
 if (!function_exists('get_logged_user')) {
     require_once __DIR__ . '/../config/security.php';
 }

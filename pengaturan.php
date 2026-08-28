@@ -1,5 +1,16 @@
 <?php
-// pengaturan.php
+/**
+ * Modul Pengaturan Sistem, Profil Unit, Jam Kerja, & Backup Database
+ * 
+ * Mengelola konfigurasi profil lembaga unit (Nama Unit, Alamat, Kepala Unit),
+ * pengaturan jam kerja operasional (Jam Masuk, Batas Terlambat, Jam Keluar),
+ * ubah password administrator, serta generator unduhan backup skema & data database (.sql).
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Settings
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -12,7 +23,7 @@ $message = '';
 $error = '';
 $activeTab = 'tab-unit';
 
-// Process Backup Download
+// Proses Penanganan Unduhan Backup Database SQL (.sql)
 if (isset($_GET['action']) && $_GET['action'] === 'download_backup') {
     $filename = "bimba_backup_" . date('Ymd_His') . ".sql";
     header('Content-Type: application/sql');

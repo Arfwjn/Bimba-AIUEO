@@ -1,5 +1,14 @@
 <?php
-// includes/header.php
+/**
+ * Komponen Core Header & Wrapper Layanan Admin biMBA AIUEO
+ * 
+ * Menyediakan bagian HTML head, stylesheet CSS, pembuka wrapper aplikasi,
+ * tombol toggle sidebar mobile, judul halaman dinamis, serta jam digital real-time.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Templates
+ * @author      Developer Team biMBA AIUEO
+ */
 if (!function_exists('get_logged_user')) {
     require_once __DIR__ . '/../config/security.php';
 }

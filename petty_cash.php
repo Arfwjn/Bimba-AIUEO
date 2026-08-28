@@ -1,5 +1,15 @@
 <?php
-// petty_cash.php
+/**
+ * Modul Pengelolaan Kas Kecil (Petty Cash Management) biMBA AIUEO
+ * 
+ * Menangani pencatatan transaksi Pemasukan & Pengeluaran kas unit,
+ * kalkulasi saldo berjalan secara otomatis, validasi nominal saldo, serta upload bukti fisik nota/kuitansi.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Finance
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -10,7 +20,7 @@ $pdo = getDB();
 $message = '';
 $error = '';
 
-// Calculate current total balance
+// Hitung total akumulasi pemasukan, pengeluaran, dan saldo berjalan saat ini
 $stmtPemTotal = $pdo->query("SELECT COALESCE(SUM(nominal), 0) as total FROM petty_cash WHERE jenis = 'Pemasukan'");
 $totalPemasukan = $stmtPemTotal ? $stmtPemTotal->fetch()['total'] : 0;
 
@@ -19,7 +29,7 @@ $totalPengeluaran = $stmtPengTotal ? $stmtPengTotal->fetch()['total'] : 0;
 
 $currentBalance = $totalPemasukan - $totalPengeluaran;
 
-// Handle Form Submission
+// Proses Penanganan Input Form Transaksi & Hapus Transaksi (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {

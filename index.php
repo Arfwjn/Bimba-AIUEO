@@ -1,5 +1,16 @@
 <?php
-// index.php
+/**
+ * Halaman Dashboard Utama Administrator biMBA AIUEO
+ * 
+ * Menampilkan ringkasan eksekutif statistik operasional unit meliputi total karyawan aktif,
+ * rekapitulasi presensi harian berbasis QR Code, arus kas kecil (petty cash),
+ * serta visualisasi grafik batang interaktif 7 hari terakhir.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Dashboard
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -9,7 +20,9 @@ $pageBreadcrumb = 'Dashboard > Ringkasan Operasional';
 $pdo = getDB();
 $today = date('Y-m-d');
 
-// Helper to safely execute query and fetch single row
+/**
+ * Helper untuk mengeksekusi query SQL dengan aman dan mengembalikan 1 baris hasil
+ */
 function safeQueryRow($pdo, $sql, $params = []) {
     try {
         $stmt = $pdo->prepare($sql);
@@ -21,15 +34,15 @@ function safeQueryRow($pdo, $sql, $params = []) {
     }
 }
 
-// 1. Total Karyawan
+// 1. Akumulasi Total Karyawan Aktif
 $resEmp = safeQueryRow($pdo, "SELECT COUNT(*) as total FROM karyawan WHERE status_aktif = 1");
 $totalKaryawan = intval($resEmp['total'] ?? 0);
 
-// 2. Presensi Hari Ini
+// 2. Akumulasi Total Presensi Valid Hari Ini
 $resPres = safeQueryRow($pdo, "SELECT COUNT(*) as total FROM presensi WHERE tanggal = ? AND status_validasi = 'Valid'", [$today]);
 $presensiHariIni = intval($resPres['total'] ?? 0);
 
-// 3. Petty Cash Stats
+// 3. Akumulasi Statistik Kas Kecil (Pemasukan, Pengeluaran, Saldo Akhir)
 $resPem = safeQueryRow($pdo, "SELECT COALESCE(SUM(nominal), 0) as total FROM petty_cash WHERE jenis = 'Pemasukan'");
 $totalPemasukan = floatval($resPem['total'] ?? 0);
 
@@ -38,7 +51,7 @@ $totalPengeluaran = floatval($resPeng['total'] ?? 0);
 
 $saldoAkhir = $totalPemasukan - $totalPengeluaran;
 
-// 4. Latest Presensi (5 items)
+// 4. Data Presensi Terbaru (5 Transaksi Terakhir)
 $recentPresensi = [];
 try {
     $stmtRecentPres = $pdo->prepare("
@@ -53,7 +66,7 @@ try {
     $recentPresensi = [];
 }
 
-// 5. Latest Petty Cash (5 items)
+// 5. Data Transaksi Petty Cash Terbaru (5 Transaksi Terakhir)
 $recentPettyCash = [];
 try {
     $stmtRecentPc = $pdo->query("SELECT * FROM petty_cash ORDER BY id_transaksi DESC LIMIT 5");

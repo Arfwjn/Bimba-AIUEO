@@ -1,5 +1,15 @@
 <?php
-// presensi.php
+/**
+ * Modul Pemindaian Presensi Karyawan Real-Time Berbasis QR Code AES-256
+ * 
+ * Menangani pemindaian QR Code lewat kamera webcam/smartphone, validasi payload terenkripsi AES-256-CBC,
+ * pencatatan otomatis Jam Masuk & Jam Keluar, input surat izin/sakit manual, serta auto-mark status Alpha.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Attendance
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -9,17 +19,17 @@ $pageBreadcrumb = 'Dashboard > Presensi QR Code';
 $pdo = getDB();
 $today = date('Y-m-d');
 
-// Fetch Active Employees for Quick Scan Simulator Dropdown
+// Ambil daftar karyawan aktif untuk dropdown presensi cepat / alternatif
 $stmtEmps = $pdo->query("SELECT id_karyawan, nama, jabatan FROM karyawan WHERE status_aktif = 1 ORDER BY nama ASC");
 $activeEmployees = $stmtEmps->fetchAll();
 
-// Otomatisasi Pencatatan Status "Tidak Hadir" (Alpha)
+// Jalankan otomatisasi pencatatan status "Tidak Hadir" (Alpha) untuk hari yang sudah lewat
 auto_mark_absent_employees($pdo);
 
 $message = '';
 $error = '';
 
-// Handle POST Actions (Input Izin / Sakit Manual oleh Admin)
+// Proses Penanganan Request POST (Input Izin / Sakit Manual oleh Admin)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {
@@ -639,7 +649,7 @@ function displayResult(res) {
         document.getElementById('resultJamKeluar').textContent = res.jam_keluar || '--:--:--';
         document.getElementById('resultMsg').textContent = res.message;
 
-        // Auto reload page after 2.5s to show updated table state
+        // Otomatis memuat ulang halaman (reload) setelah 2.5 detik untuk menampilkan data tabel terbaru
         setTimeout(() => location.reload(), 2500);
     } else {
         badge.className = (res.status === 'Complete') ? 'badge badge-info' : 'badge badge-danger';

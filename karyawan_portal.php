@@ -1,5 +1,15 @@
 <?php
-// karyawan_portal.php
+/**
+ * Modul Portal Mandiri & Cetak ID Card Digital Karyawan biMBA AIUEO
+ * 
+ * Menampilkan ID Card Digital Karyawan dengan kode QR terenkripsi AES-256-CBC,
+ * tombol cetak ukuran standar ID Card (90mm x 140mm), serta 10 riwayat presensi mandiri terakhir.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  EmployeePortal
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -8,10 +18,10 @@ $pageBreadcrumb = 'Dashboard > Data Karyawan > Portal ID Card';
 
 $pdo = getDB();
 
-// Fetch Dynamic Settings
+// Ambil Konfigurasi Pengaturan Nama Unit
 $unitNameVal = get_system_setting('unit_name', 'biMBA AIUEO Unit Kebanggan');
 
-// Fetch Active Employees List
+// Ambil Daftar Karyawan Aktif untuk Pilihan Portal
 $stmtEmps = $pdo->query("SELECT id_karyawan, nama, jabatan FROM karyawan WHERE status_aktif = 1 ORDER BY nama ASC");
 $activeEmployees = $stmtEmps->fetchAll();
 

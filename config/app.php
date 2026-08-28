@@ -1,5 +1,15 @@
 <?php
-// config/app.php
+/**
+ * Modul Konfigurasi Aplikasi Core & Penolong Helper Sistem
+ * 
+ * Mengatur zona waktu default (Asia/Jakarta), konstanta aplikasi, konfigurasi enkripsi AES-256,
+ * penanganan session HTTP aman, serta helper pagination dan badge status presensi.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Configuration
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/env.php';
 
 date_default_timezone_set('Asia/Jakarta');
@@ -103,13 +113,13 @@ function render_pagination($page, $totalPages, $queryParams = []) {
 }
 
 /**
- * Generates detailed Status Badges & Text for Presensi Masuk and Presensi Keluar
- * Based on business rules:
- * 1. Masuk & Keluar Tepat Waktu -> Masuk: Hadir (Green), Keluar: Hadir (Tepat Waktu) (Green)
- * 2. Masuk Terlambat & Keluar Tepat Waktu -> Masuk: Hadir (Terlambat) (Orange), Keluar: Hadir (Tepat Waktu) (Green)
- * 3. Masuk Tepat Waktu & Keluar Pulang Awal -> Masuk: Hadir (Green), Keluar: Pulang Awal (Orange)
- * 4. Tidak Presensi -> Masuk: Tidak Hadir (Red), Keluar: Tidak Hadir (Red)
- * 5. Izin / Sakit -> Masuk & Keluar: Izin/Sakit (Warning)
+ * Menghasilkan Badge Status & Teks Detail untuk Presensi Masuk dan Presensi Keluar
+ * Berdasarkan Aturan Bisnis Logika Skripsi biMBA AIUEO:
+ * 1. Masuk & Keluar Tepat Waktu -> Masuk: Hadir (Hijau), Keluar: Tepat Waktu (Hijau)
+ * 2. Masuk Terlambat & Keluar Tepat Waktu -> Masuk: Terlambat (Kuning/Oranye), Keluar: Tepat Waktu (Hijau)
+ * 3. Masuk Tepat Waktu & Keluar Pulang Awal -> Masuk: Hadir (Hijau), Keluar: Pulang Awal (Kuning/Oranye)
+ * 4. Tidak Presensi -> Masuk: Tidak Hadir (Merah), Keluar: Tidak Hadir (Merah)
+ * 5. Surat Izin / Sakit -> Masuk & Keluar: Izin/Sakit (Kuning)
  */
 function get_attendance_detail_badges($row) {
     $status = $row['status'] ?? 'Hadir';

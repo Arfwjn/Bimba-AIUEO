@@ -1,5 +1,16 @@
 <?php
-// laporan.php
+/**
+ * Modul Laporan Rekapitulasi Presensi Karyawan biMBA AIUEO
+ * 
+ * Menyediakan filter rekap presensi per rentang tanggal/bulan/karyawan,
+ * pencatatan ringkasan statistik (Hadir, Terlambat, Izin/Sakit, Alpha),
+ * serta ekspor laporan resmi ke format Excel (.xls) dan Cetak PDF Kop Surat.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Reports
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -8,13 +19,13 @@ $pageBreadcrumb = 'Dashboard > Laporan Presensi';
 
 $pdo = getDB();
 
-// Otomatisasi Pencatatan Status "Tidak Hadir" (Alpha)
+// Jalankan otomatisasi pencatatan status "Tidak Hadir" (Alpha) untuk hari yang telah lewat
 auto_mark_absent_employees($pdo);
 
 $message = '';
 $error = '';
 
-// Handle POST Input Izin / Sakit Manual oleh Admin
+// Proses Penanganan Input Surat Izin / Sakit Manual oleh Admin (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {

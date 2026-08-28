@@ -1,5 +1,15 @@
 <?php
-// login.php
+/**
+ * Modul Halaman Login & Registrasi Administrator Unit biMBA AIUEO
+ * 
+ * Menangani proses autentikasi pengguna admin, validasi token CSRF,
+ * verifikasi enkripsi password (Bcrypt), serta pendaftaran akun admin baru.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Authentication
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/security.php';
 
@@ -11,7 +21,7 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Process Form Submit
+// Proses Penanganan Form (Login & Registrasi Admin Baru)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {
@@ -34,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (password_verify($password, $user['password'])) {
                         $isPasswordValid = true;
                     } elseif ($user['password'] === $password || $user['password'] === md5($password)) {
-                        // Fallback for manually inserted plain-text or MD5 passwords in phpMyAdmin
+                        // Dukungan kompatibilitas: Pengguna yang di-insert manual via phpMyAdmin
                         $isPasswordValid = true;
-                        // Auto-upgrade plain-text password to secure bcrypt hash
+                        // Otomatis meng-upgrade password teks biasa menjadi hash Bcrypt terenkripsi
                         try {
                             $newHash = password_hash($password, PASSWORD_DEFAULT);
                             $updStmt = $pdo->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");

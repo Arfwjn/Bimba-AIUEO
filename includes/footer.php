@@ -1,5 +1,14 @@
 <?php
-// includes/footer.php
+/**
+ * Komponen Core Footer & Reusable Modal Container biMBA AIUEO
+ * 
+ * Menyediakan penutup HTML body, kontainer modal konfirmasi global,
+ * serta pemanggilan pustaka script JavaScript (qrcode.js & app.js).
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Templates
+ * @author      Developer Team biMBA AIUEO
+ */
 ?>
         </main>
     </div>

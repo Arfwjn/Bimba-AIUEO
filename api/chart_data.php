@@ -1,5 +1,15 @@
 <?php
-// api/chart_data.php
+/**
+ * API Endpoint JSON Generator Data Grafik Dashboard 7 Hari Terakhir
+ * 
+ * Mengagregasi data kehadiran karyawan dan total pengeluaran kas kecil (petty cash)
+ * selama 7 hari terakhir untuk dirender oleh grafik statistik Canvas pada dashboard admin.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  API
+ * @author      Developer Team biMBA AIUEO
+ */
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config/database.php';
 

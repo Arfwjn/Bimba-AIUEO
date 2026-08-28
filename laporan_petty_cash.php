@@ -1,5 +1,16 @@
 <?php
-// laporan_petty_cash.php
+/**
+ * Modul Laporan Rekapitulasi Kas Kecil (Petty Cash Report) biMBA AIUEO
+ * 
+ * Menyediakan penyaringan transaksi kas kecil (Harian, Bulanan, & Tahunan),
+ * perhitungan total Pemasukan, Pengeluaran, Saldo Bersih per periode,
+ * serta ekspor data ke format Excel (.xls) dan Cetak PDF Resmi Berkop Surat.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  Reports
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -8,7 +19,7 @@ $pageBreadcrumb = 'Dashboard > Petty Cash > Laporan Petty Cash';
 
 $pdo = getDB();
 
-// Filter parameters
+// Parameter Penyaringan Data Laporan
 $selectedDate = isset($_GET['tanggal']) ? trim($_GET['tanggal']) : '';
 $selectedMonth = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
 $selectedYear = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');

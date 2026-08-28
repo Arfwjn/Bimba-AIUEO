@@ -1,5 +1,15 @@
 <?php
-// karyawan.php
+/**
+ * Modul Manajemen Master Data Karyawan biMBA AIUEO
+ * 
+ * Mengelola data karyawan unit (Tambah, Edit, Hapus, & Toggle Status Keaktifan)
+ * serta menyediakan integrasi pencetakan QR Code terenkripsi dan Portal ID Card Digital.
+ * 
+ * @package     biMBA_AIUEO
+ * @subpackage  MasterData
+ * @author      Developer Team biMBA AIUEO
+ */
+
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
@@ -10,14 +20,14 @@ $pdo = getDB();
 $message = '';
 $error = '';
 
-// Auto-migration check: Ensure status_aktif column exists in karyawan table
+// Verifikasi Migrasi Otomatis: Memastikan kolom status_aktif tersedia pada tabel karyawan
 try {
     $pdo->exec("ALTER TABLE karyawan ADD status_aktif INT DEFAULT 1");
 } catch (Exception $e) {
-    // Column already exists, ignore
+    // Kolom sudah ada, lewati
 }
 
-// Handle POST actions (Create, Update, Toggle Status, Delete)
+// Proses Penanganan Request POST (Tambah, Edit, Toggle Status, & Hapus Karyawan)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
     if (!verify_csrf_token($token)) {
@@ -32,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!empty($nama) && !empty($jabatan)) {
                 try {
-                    // Cari ID terkecil yang kosong / belum terpakai (mengisi nomor ID yang dihapus)
+                    // Cari ID terkecil yang kosong / belum terpakai (mengisi urutan ID yang terhapus)
                     $existingIds = $pdo->query("SELECT id_karyawan FROM karyawan ORDER BY id_karyawan ASC")->fetchAll(PDO::FETCH_COLUMN);
                     
                     $nextId = 1;
