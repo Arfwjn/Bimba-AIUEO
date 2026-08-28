@@ -31,11 +31,11 @@ if (!isset($pageBreadcrumb)) {
     <!-- Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Custom CSS (Dengan Cache-Busting Versioning) -->
+    <link rel="stylesheet" href="assets/css/style.css?v=<?= defined('APP_VERSION') ? APP_VERSION : time() ?>">
     
     <!-- Official Print & Kop Surat CSS -->
-    <link rel="stylesheet" href="assets/css/print-official.css">
+    <link rel="stylesheet" href="assets/css/print-official.css?v=<?= defined('APP_VERSION') ? APP_VERSION : time() ?>">
 </head>
 <body>
 <div class="app-container">

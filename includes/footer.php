@@ -30,8 +30,8 @@
     </div>
 </div>
 
-<!-- Global Scripts -->
+<!-- Global Scripts (Dengan Cache-Busting Versioning) -->
 <script src="assets/js/qrcode.min.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=<?= defined('APP_VERSION') ? APP_VERSION : time() ?>"></script>
 </body>
 </html>
