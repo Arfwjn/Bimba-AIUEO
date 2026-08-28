@@ -25,11 +25,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!empty($username) && !empty($password)) {
                 $pdo = getDB();
-                $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
-                $stmt->execute([$username]);
+                $stmt = $pdo->prepare("SELECT * FROM admin WHERE LOWER(username) = LOWER(?) OR username = ?");
+                $stmt->execute([$username, $username]);
                 $user = $stmt->fetch();
 
-                if ($user && password_verify($password, $user['password'])) {
+                $isPasswordValid = false;
+                if ($user) {
+                    if (password_verify($password, $user['password'])) {
+                        $isPasswordValid = true;
+                    } elseif ($user['password'] === $password || $user['password'] === md5($password)) {
+                        // Fallback for manually inserted plain-text or MD5 passwords in phpMyAdmin
+                        $isPasswordValid = true;
+                        // Auto-upgrade plain-text password to secure bcrypt hash
+                        try {
+                            $newHash = password_hash($password, PASSWORD_DEFAULT);
+                            $updStmt = $pdo->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
+                            $updStmt->execute([$newHash, $user['id_admin']]);
+                        } catch (Exception $e) {}
+                    }
+                }
+
+                if ($user && $isPasswordValid) {
                     session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['id_admin'];
                     $_SESSION['username'] = $user['username'];
