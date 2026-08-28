@@ -56,3 +56,4 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </div>
 </aside>
+<div id="sidebarBackdrop" class="sidebar-backdrop"></div>

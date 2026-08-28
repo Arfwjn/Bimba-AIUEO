@@ -23,15 +23,55 @@ function initClock() {
     setInterval(update, 1000);
 }
 
-// Sidebar Drawer for Mobile
+// Sidebar Drawer & Backdrop Overlay for Mobile
 function initSidebarToggle() {
     const toggleBtn = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.sidebar');
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('open');
+    const backdrop = document.getElementById('sidebarBackdrop');
+
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('show');
+    }
+
+    function toggleSidebar() {
+        if (!sidebar) return;
+        const isOpen = sidebar.classList.toggle('open');
+        if (backdrop) {
+            if (isOpen) {
+                backdrop.classList.add('show');
+            } else {
+                backdrop.classList.remove('show');
+            }
+        }
+    }
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSidebar();
         });
     }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', closeSidebar);
+    }
+
+    // Auto-close sidebar on mobile when nav link is clicked
+    document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 992) {
+                closeSidebar();
+            }
+        });
+    });
+
+    // Reset mobile state on window resize to desktop
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 992) {
+            closeSidebar();
+        }
+    });
 }
 
 // Modal Helpers
