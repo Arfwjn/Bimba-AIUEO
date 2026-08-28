@@ -1161,8 +1161,16 @@ input[type="file"]::-webkit-file-upload-button:hover {
     }
 }
 
+/* Sidebar Toggle Button: Hidden on Desktop/PC/Laptop (> 992px), Visible ONLY on Mobile/Tablet (<= 992px) */
+#sidebarToggle {
+    display: none !important;
+}
+
 /* 2. Tablets & Mobile Drawer Boundary (<= 992px) */
 @media (max-width: 992px) {
+    #sidebarToggle {
+        display: inline-flex !important;
+    }
     .sidebar {
         position: fixed;
         top: 0;
