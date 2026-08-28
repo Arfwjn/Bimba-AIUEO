@@ -500,41 +500,79 @@ input[type="file"]::-webkit-file-upload-button:hover {
     cursor: pointer;
     transition: all 0.15s ease;
     border: 2px solid var(--border-color);
+    white-space: nowrap !important;
+    word-break: normal !important;
 }
 
-.btn-primary {
-    background-color: var(--border-color);
-    color: #FFFFFF;
+.btn span {
+    white-space: nowrap !important;
 }
 
-.btn-primary:hover {
-    background-color: #333333;
-    border-color: #111111;
-    box-shadow: 2px 2px 0 var(--border-color, #111111);
+.btn-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
 }
 
-.btn-secondary {
-    background-color: var(--surface-color);
-    color: var(--text-primary);
+.td-qr-portal {
+    white-space: nowrap !important;
 }
 
-.btn-danger {
-    background-color: #FFFFFF;
-    color: #DC2626;
-    border: 2px solid var(--border-color, #111111);
-}
-
-.btn-danger:hover {
-    background-color: #FFF1F2;
-    color: #BE123C;
-    border-color: var(--border-color, #111111);
-    box-shadow: 2px 2px 0 var(--border-color, #111111);
-}
-
-.btn-sm {
+.btn-table-action {
     height: 34px;
-    padding: 0 12px;
+    padding: 0 10px;
     font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Quick Scan Toolbar Symmetrical Layout */
+.quick-scan-toolbar {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: var(--surface-muted);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.quick-scan-toolbar .btn-upload-qr {
+    height: 42px;
+    padding: 0 16px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.quick-scan-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+    min-width: 260px;
+}
+
+.quick-scan-group .custom-emp-select-trigger {
+    height: 42px;
+    font-size: 13px;
+}
+
+.quick-scan-group .btn-instant {
+    height: 42px;
+    padding: 0 16px;
+    font-size: 13px;
+    white-space: nowrap;
 }
 
 /* Square Icon Button Utility (32px x 32px Perfect Square) */
@@ -1286,6 +1324,21 @@ input[type="file"]::-webkit-file-upload-button:hover {
     .custom-month-picker-trigger {
         height: 42px;
         font-size: 12.5px;
+    }
+
+    .quick-scan-toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        padding: 10px !important;
+    }
+    .quick-scan-toolbar .btn-upload-qr {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    .quick-scan-group {
+        width: 100% !important;
+        min-width: 0 !important;
     }
 }
 

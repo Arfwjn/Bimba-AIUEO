@@ -26,6 +26,9 @@ $pdo = getDB();
 $filename = "export_{$type}_" . date('Ymd_His') . ".xls";
 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Pragma: public');
+header('Expires: 0');
+header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
 header('Cache-Control: max-age=0');
 
 // 3. Ambil Identitas Lembaga & Kepala Unit dari Pengaturan Sistem

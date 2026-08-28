@@ -139,25 +139,25 @@ include __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Combined Alternative Scan & Presensi Instant Toolbar -->
-        <div style="margin-top: 16px; padding: 12px; background-color: var(--surface-muted); border: 1px solid var(--border-color); border-radius: 8px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+        <div class="quick-scan-toolbar">
             <!-- Upload File Gambar QR -->
-            <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0; white-space: nowrap;">
-                <span class="material-symbols-outlined" style="font-size: 16px;">upload_file</span>
+            <label class="btn btn-secondary btn-upload-qr" style="cursor: pointer; margin: 0;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span>
                 <span>Upload Gambar QR</span>
                 <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromFile(this)">
             </label>
 
             <!-- Presensi Cepat Searchable Custom Employee Combobox -->
-            <div style="display: flex; gap: 8px; align-items: center; flex: 1; justify-content: flex-end; min-width: 260px;">
+            <div class="quick-scan-group">
                 <input type="hidden" id="quickSelectEmp" value="">
-                <div class="custom-emp-select-wrapper" style="position: relative; flex: 1; max-width: 240px;">
-                    <div class="custom-emp-select-trigger" style="height: 36px; font-size: 12px; padding: 0 10px;" onclick="toggleEmpSearchPopover('popoverEmpQuickScan', event)">
-                        <span id="quickSelectEmpLabel" style="color: var(--text-muted);">Pilih Karyawan</span>
-                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">expand_more</span>
+                <div class="custom-emp-select-wrapper" style="position: relative; flex: 1; min-width: 0;">
+                    <div class="custom-emp-select-trigger" onclick="toggleEmpSearchPopover('popoverEmpQuickScan', event)">
+                        <span id="quickSelectEmpLabel" style="color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Pilih Karyawan</span>
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted); flex-shrink: 0;">expand_more</span>
                     </div>
 
                     <!-- Popover Panel with Live Search -->
-                    <div id="popoverEmpQuickScan" class="emp-search-popover" style="display: none; width: 260px;" onclick="event.stopPropagation();">
+                    <div id="popoverEmpQuickScan" class="emp-search-popover" style="display: none;" onclick="event.stopPropagation();">
                         <div class="emp-search-input-wrapper">
                             <span class="material-symbols-outlined">search</span>
                             <input type="text" class="emp-search-input" placeholder="Cari nama atau kode..." onkeyup="filterEmpOptions('popoverEmpQuickScan', this.value)">
@@ -178,8 +178,8 @@ include __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-sm" style="height: 36px; white-space: nowrap;" onclick="executeQuickScan()">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">bolt</span>
+                <button class="btn btn-primary btn-instant" type="button" onclick="executeQuickScan()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">bolt</span>
                     <span>Instant</span>
                 </button>
             </div>

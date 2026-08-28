@@ -225,13 +225,13 @@ include __DIR__ . '/includes/header.php';
                                     <?= $isAktif === 1 ? 'Aktif' : 'Non-Aktif' ?>
                                 </span>
                             </td>
-                            <td>
-                                <div style="display: inline-flex; gap: 6px;">
-                                    <button class="btn btn-secondary btn-sm" onclick="showQRCode('EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?>', '<?= htmlspecialchars(addslashes($emp['nama'])) ?>', '<?= htmlspecialchars(addslashes($emp['jabatan'])) ?>')">
+                            <td class="td-qr-portal">
+                                <div class="btn-action-group">
+                                    <button class="btn btn-secondary btn-table-action" onclick="showQRCode('EMP-<?= sprintf('%03d', $emp['id_karyawan']) ?>', '<?= htmlspecialchars(addslashes($emp['nama'])) ?>', '<?= htmlspecialchars(addslashes($emp['jabatan'])) ?>')">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">qr_code_2</span>
                                         <span>QR Code AES</span>
                                     </button>
-                                    <a href="karyawan_portal.php?emp_id=<?= $emp['id_karyawan'] ?>" class="btn btn-secondary btn-sm" title="Buka Portal ID Card Karyawan Ini">
+                                    <a href="karyawan_portal.php?emp_id=<?= $emp['id_karyawan'] ?>" class="btn btn-secondary btn-table-action" title="Buka Portal ID Card Karyawan Ini">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">id_card</span>
                                         <span>Portal ID</span>
                                     </a>
