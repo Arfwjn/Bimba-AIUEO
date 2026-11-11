@@ -14,6 +14,16 @@
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
+// Safe driver helper fallback
+if (!function_exists('get_db_driver')) {
+    function get_db_driver($p = null) {
+        if ($p instanceof PDO) {
+            try { return $p->getAttribute(PDO::ATTR_DRIVER_NAME); } catch (Exception $e) {}
+        }
+        return defined('DB_DRIVER') ? DB_DRIVER : 'mysql';
+    }
+}
+
 $pageTitle = 'Laporan Rekapitulasi Presensi';
 $pageBreadcrumb = 'Dashboard > Laporan Presensi';
 
@@ -113,7 +123,7 @@ if (!empty($selectedDate)) {
     ";
     $params = [$selectedDate, $selectedDate];
 } else {
-    if (DB_DRIVER === 'mysql') {
+    if (get_db_driver($pdo) === 'mysql') {
         $sql = "
             SELECT p.*, k.nama, k.jabatan 
             FROM presensi p 
@@ -201,14 +211,14 @@ include __DIR__ . '/includes/header.php';
     .panel {
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
+        background: transparent !important;
     }
     body {
         background: white !important;
     }
     @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 15mm;
     }
 }
 </style>

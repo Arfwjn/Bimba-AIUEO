@@ -17,7 +17,7 @@ date_default_timezone_set('Asia/Jakarta');
 define('APP_NAME', env('APP_NAME', 'biMBA AIUEO Unit Kebanggan'));
 define('APP_ENV', env('APP_ENV', 'production'));
 define('APP_DEBUG', env('APP_DEBUG', false));
-define('APP_VERSION', '1.0.0');
+define('APP_VERSION', '1.0.2');
 
 // AES Encryption Settings
 define('AES_KEY', env('AES_KEY', 'biMBA_AIUEO_SecretKey_2026_AES256'));

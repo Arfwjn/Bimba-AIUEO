@@ -14,6 +14,16 @@
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
+// Safe driver helper fallback
+if (!function_exists('get_db_driver')) {
+    function get_db_driver($p = null) {
+        if ($p instanceof PDO) {
+            try { return $p->getAttribute(PDO::ATTR_DRIVER_NAME); } catch (Exception $e) {}
+        }
+        return defined('DB_DRIVER') ? DB_DRIVER : 'mysql';
+    }
+}
+
 $pageTitle = 'Laporan Petty Cash';
 $pageBreadcrumb = 'Dashboard > Petty Cash > Laporan Petty Cash';
 
@@ -46,7 +56,7 @@ if (!empty($selectedDate)) {
     $periodeLabel = "Harian: " . date('d F Y', strtotime($selectedDate));
 } elseif ($modeTahun === 1) {
     // Mode 2: Tahunan
-    if (DB_DRIVER === 'mysql') {
+    if (get_db_driver($pdo) === 'mysql') {
         $sql = "SELECT * FROM petty_cash WHERE YEAR(tanggal) = ? ORDER BY tanggal ASC, id_transaksi ASC";
         $params = [$selectedYear];
     } else {
@@ -56,7 +66,7 @@ if (!empty($selectedDate)) {
     $periodeLabel = "Tahun " . $selectedYear;
 } else {
     // Mode 3: Bulanan (Default)
-    if (DB_DRIVER === 'mysql') {
+    if (get_db_driver($pdo) === 'mysql') {
         $sql = "SELECT * FROM petty_cash WHERE MONTH(tanggal) = ? AND YEAR(tanggal) = ? ORDER BY id_transaksi ASC";
         $params = [$selectedMonth, $selectedYear];
     } else {
@@ -115,7 +125,7 @@ include __DIR__ . '/includes/header.php';
 @media print {
     @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 15mm;
     }
 }
 </style>

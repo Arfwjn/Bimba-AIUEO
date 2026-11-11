@@ -11,18 +11,24 @@ Options -Indexes
     Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# Protect Sensitive Files
+# Protect Sensitive Files (.env, database schema, sqlite)
 <FilesMatch "^\.env|schema\.sql|\.sqlite$">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # Default Index File
 DirectoryIndex index.php login.php
 
-# Force HTTPS Redirect
+# Force HTTPS Redirect (InfinityFree / Reverse Proxy Compatible)
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} =http [OR]
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>

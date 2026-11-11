@@ -39,7 +39,10 @@ function getDB() {
 
             return $pdo;
         } catch (PDOException $e) {
-            // Fallback otomatis ke database SQLite jika service MySQL XAMPP tidak aktif
+            // Jika dalam mode development/debug dan koneksi MySQL gagal, kita bisa log
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log("MySQL Connection Failed: " . $e->getMessage() . " - falling back to SQLite");
+            }
         }
     }
 
@@ -57,6 +60,22 @@ function getDB() {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
+        // Daftarkan fungsi kustom SQLite agar kompatibel penuh dengan query MySQL (MONTH, YEAR, DATE)
+        if (method_exists($pdo, 'sqliteCreateFunction')) {
+            $pdo->sqliteCreateFunction('MONTH', function($date) {
+                if (!$date) return null;
+                return (string)(int) date('n', strtotime($date));
+            }, 1);
+            $pdo->sqliteCreateFunction('YEAR', function($date) {
+                if (!$date) return null;
+                return (string)(int) date('Y', strtotime($date));
+            }, 1);
+            $pdo->sqliteCreateFunction('DATE', function($date) {
+                if (!$date) return null;
+                return date('Y-m-d', strtotime($date));
+            }, 1);
+        }
+
         if ($isNew || filesize($dbFile) === 0) {
             initDatabase($pdo);
         } else {
@@ -64,14 +83,27 @@ function getDB() {
         }
         return $pdo;
     } catch (PDOException $e) {
-        die("SQLite Connection Error: " . $e->getMessage());
+        die("Database Connection Error: " . $e->getMessage());
+    }
+}
+
+// Mengetahui driver database aktif yang sedang terhubung ke PDO
+function get_db_driver($pdo = null) {
+    if ($pdo === null) {
+        $pdo = getDB();
+    }
+    try {
+        return $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    } catch (Exception $e) {
+        return defined('DB_DRIVER') ? DB_DRIVER : 'mysql';
     }
 }
 
 // Tambahkan tabel atau kolom baru secara otomatis jika belum ada di database
 function autoMigrateTables($pdo) {
+    $driver = get_db_driver($pdo);
     try {
-        if (DB_DRIVER === 'mysql') {
+        if ($driver === 'mysql') {
             $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
                 setting_key VARCHAR(50) PRIMARY KEY,
                 setting_value TEXT NULL
@@ -157,7 +189,7 @@ function get_system_setting($key, $default = '') {
 function save_system_setting($key, $value) {
     try {
         $pdo = getDB();
-        if (DB_DRIVER === 'mysql') {
+        if (get_db_driver($pdo) === 'mysql') {
             $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
             $stmt->execute([$key, $value, $value]);
         } else {

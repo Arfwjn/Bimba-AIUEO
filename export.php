@@ -18,6 +18,16 @@
 require_once __DIR__ . '/includes/auth_check.php';
 require_once __DIR__ . '/config/database.php';
 
+// Safe driver helper fallback
+if (!function_exists('get_db_driver')) {
+    function get_db_driver($p = null) {
+        if ($p instanceof PDO) {
+            try { return $p->getAttribute(PDO::ATTR_DRIVER_NAME); } catch (Exception $e) {}
+        }
+        return defined('DB_DRIVER') ? DB_DRIVER : 'mysql';
+    }
+}
+
 // 1. Ambil Parameter Tipe Export dari URL Query String
 $type = trim($_GET['type'] ?? 'presensi');
 $pdo = getDB();
@@ -176,7 +186,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
         ";
         $params = [$selectedDate, $selectedDate];
     } else {
-        if (DB_DRIVER === 'mysql') {
+        if (get_db_driver($pdo) === 'mysql') {
             $sql = "
                 SELECT p.*, k.nama, k.jabatan 
                 FROM presensi p 
@@ -287,7 +297,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
         $params[] = $selectedDate;
         $periodeLabel = "Harian: " . date('d F Y', strtotime($selectedDate));
     } elseif ($modeTahun === 1) {
-        if (DB_DRIVER === 'mysql') {
+        if (get_db_driver($pdo) === 'mysql') {
             $sql .= " AND YEAR(tanggal) = ?";
         } else {
             $sql .= " AND strftime('%Y', tanggal) = ?";
@@ -295,7 +305,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
         $params[] = (string)$year;
         $periodeLabel = "Tahun " . $year;
     } else {
-        if (DB_DRIVER === 'mysql') {
+        if (get_db_driver($pdo) === 'mysql') {
             $sql .= " AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
             $params[] = $month;
             $params[] = $year;

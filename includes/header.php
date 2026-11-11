@@ -32,10 +32,10 @@ if (!isset($pageBreadcrumb)) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
     <!-- Custom CSS (Dengan Cache-Busting Versioning) -->
-    <link rel="stylesheet" href="assets/css/style.css?v=<?= defined('APP_VERSION') ? APP_VERSION : time() ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?= defined('APP_VERSION') ? APP_VERSION : '1.0.2' ?>">
     
     <!-- Official Print & Kop Surat CSS -->
-    <link rel="stylesheet" href="assets/css/print-official.css?v=<?= defined('APP_VERSION') ? APP_VERSION : time() ?>">
+    <link rel="stylesheet" href="assets/css/print-official.css?v=<?= defined('APP_VERSION') ? APP_VERSION : '1.0.2' ?>">
 </head>
 <body>
 <div class="app-container">
