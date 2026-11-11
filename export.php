@@ -22,23 +22,97 @@ require_once __DIR__ . '/config/database.php';
 $type = trim($_GET['type'] ?? 'presensi');
 $pdo = getDB();
 
-// 2. Set Response Header untuk Mendownload File Microsoft Excel (.xls)
+// 2. Set Response Header untuk Mendownload File Microsoft Excel (.xls) berformat MHTML
 $filename = "export_{$type}_" . date('Ymd_His') . ".xls";
-header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Pragma: public');
-header('Expires: 0');
-header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-header('Cache-Control: max-age=0');
+$logoPath = __DIR__ . '/assets/img/logo-bimba.png';
+$hasLogo = file_exists($logoPath);
+$logoB64 = $hasLogo ? chunk_split(base64_encode(file_get_contents($logoPath)), 76, "\n") : '';
+$boundary = "----=_NextPart_BIMBA_AIUEO_MHTML";
+
+if (!headers_sent()) {
+    header('Content-Type: multipart/related; boundary="' . $boundary . '"');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Cache-Control: max-age=0');
+}
 
 // 3. Ambil Identitas Lembaga & Kepala Unit dari Pengaturan Sistem
-$unitNameVal = get_system_setting('unit_name', 'biMBA AIUEO Unit Kebanggan');
+$unitNameVal = get_system_setting('unit_name', 'Unit Kebanggan');
 $unitLeaderVal = get_system_setting('unit_leader', 'Siti Rahmawati, S.Pd');
 $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
+$unitAddressVal = get_system_setting('unit_address', 'Jl. Raya Kebanggan No. 12, Jakarta');
+$unitPhoneVal = get_system_setting('unit_phone', '(021) 555-8899');
+$unitEmailVal = get_system_setting('unit_email', 'info@bimba-kebanggan.sch.id');
 
-// 4. Struktur HTML XML Microsoft Excel
+$yayasanVal = get_system_setting('institution_yayasan', 'YAYASAN PENGEMBANGAN ANAK INDONESIA');
+$brandVal = get_system_setting('institution_brand', 'RUMAH BACA biMBA-AIUEO');
+$sloganVal = get_system_setting('institution_slogan', 'Pusat Pengembangan MINAT Belajar Anak');
+
+/**
+ * Render Header Kop Surat Resmi Standar Kedinasan / Yayasan untuk Lembar Kerja Excel
+ */
+if (!function_exists('render_excel_kop_surat')) {
+function render_excel_kop_surat($totalCols, $yayasanVal, $brandVal, $unitNameVal, $sloganVal, $unitAddressVal, $unitPhoneVal, $unitEmailVal, $hasLogo = false) {
 ?>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <!-- Kop Surat Resmi Lembaga biMBA-AIUEO untuk Lembar Kerja Excel -->
+    <table style="border: none; margin-bottom: 12px; width: 100%;">
+        <tr style="border: none;">
+            <?php if ($hasLogo): ?>
+                <td rowspan="5" style="border: none; width: 95px; text-align: center; vertical-align: middle;">
+                    <img src="file:///C:/logo_bimba.png" width="75" height="78" alt="Logo biMBA AIUEO" style="display: block; margin: auto;">
+                </td>
+                <td colspan="<?= $totalCols - 1 ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #000000; padding: 2px 0;">
+                    <?= htmlspecialchars(strtoupper($yayasanVal)) ?>
+                </td>
+            <?php else: ?>
+                <td colspan="<?= $totalCols ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #000000; padding: 2px 0;">
+                    <?= htmlspecialchars(strtoupper($yayasanVal)) ?>
+                </td>
+            <?php endif; ?>
+        </tr>
+        <tr style="border: none;">
+            <td colspan="<?= $hasLogo ? ($totalCols - 1) : $totalCols ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 16pt; font-weight: bold; color: #1E3A8A; padding: 4px 0;">
+                <?= htmlspecialchars($brandVal) ?>
+            </td>
+        </tr>
+        <tr style="border: none;">
+            <td colspan="<?= $hasLogo ? ($totalCols - 1) : $totalCols ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #000000; padding: 2px 0;">
+                <?= htmlspecialchars(strtoupper($unitNameVal)) ?>
+            </td>
+        </tr>
+        <tr style="border: none;">
+            <td colspan="<?= $hasLogo ? ($totalCols - 1) : $totalCols ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; color: #DC2626; padding: 2px 0;">
+                <?= htmlspecialchars($sloganVal) ?>
+            </td>
+        </tr>
+        <tr style="border: none;">
+            <td colspan="<?= $hasLogo ? ($totalCols - 1) : $totalCols ?>" style="border: none; text-align: center; font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; color: #4B5563; padding: 2px 0;">
+                <?= htmlspecialchars($unitAddressVal) ?> &bull; Telp: <?= htmlspecialchars($unitPhoneVal) ?> &bull; Email: <?= htmlspecialchars($unitEmailVal) ?>
+            </td>
+        </tr>
+        <tr style="border: none;">
+            <td colspan="<?= $totalCols ?>" style="border: none; border-bottom: 3px double #000000; height: 6px; padding: 0;"></td>
+        </tr>
+    </table>
+<?php
+}
+}
+
+// 4. Struktur MHTML Multipart Microsoft Excel
+echo "MIME-Version: 1.0\r\n";
+echo "X-Document-Type: Workbook\r\n";
+echo "Content-Type: multipart/related; boundary=\"" . $boundary . "\"\r\n\r\n";
+echo "--" . $boundary . "\r\n";
+echo "Content-Location: file:///C:/bimba_report.htm\r\n";
+echo "Content-Transfer-Encoding: 8bit\r\n";
+echo "Content-Type: text/html; charset=\"utf-8\"\r\n\r\n";
+?>
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:x="urn:schemas-microsoft-com:office:excel"
+xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <!--[if gte mso 9]>
@@ -132,9 +206,12 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Kop Surat Resmi Lembaga biMBA-AIUEO untuk Rekap Presensi -->
+    <?php render_excel_kop_surat(11, $yayasanVal, $brandVal, $unitNameVal, $sloganVal, $unitAddressVal, $unitPhoneVal, $unitEmailVal, $hasLogo); ?>
+
     <!-- Judul Header Laporan Presensi -->
-    <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
-    <div class="subtitle">LAPORAN REKAPITULASI PRESENSI KARYAWAN - Periode: <?= $monthsIndo[$month] ?> <?= $year ?></div>
+    <div class="title">LAPORAN REKAPITULASI PRESENSI KARYAWAN</div>
+    <div class="subtitle">Periode: <?= !empty($selectedDate) ? date('d F Y', strtotime($selectedDate)) : ($monthsIndo[$month] . ' ' . $year) ?></div>
 
     <!-- Tabel Data Rekapitulasi Presensi -->
     <table>
@@ -246,9 +323,12 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Kop Surat Resmi Lembaga biMBA-AIUEO untuk Petty Cash -->
+    <?php render_excel_kop_surat(6, $yayasanVal, $brandVal, $unitNameVal, $sloganVal, $unitAddressVal, $unitPhoneVal, $unitEmailVal, $hasLogo); ?>
+
     <!-- Judul Header Laporan Petty Cash -->
-    <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
-    <div class="subtitle">LAPORAN ARUS KAS KECIL (PETTY CASH) - Periode: <?= htmlspecialchars($periodeLabel) ?></div>
+    <div class="title">LAPORAN ARUS KAS KECIL (PETTY CASH)</div>
+    <div class="subtitle">Periode: <?= htmlspecialchars($periodeLabel) ?></div>
 
     <!-- Tabel Data Transaksi Kas Kecil -->
     <table>
@@ -289,9 +369,12 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
     $rows = $stmt->fetchAll();
     ?>
 
+    <!-- Kop Surat Resmi Lembaga biMBA-AIUEO untuk Master Data Karyawan -->
+    <?php render_excel_kop_surat(5, $yayasanVal, $brandVal, $unitNameVal, $sloganVal, $unitAddressVal, $unitPhoneVal, $unitEmailVal, $hasLogo); ?>
+
     <!-- Judul Header Daftar Karyawan -->
-    <div class="title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
-    <div class="subtitle">DAFTAR KARYAWAN & STAF MOTIVATOR</div>
+    <div class="title">DAFTAR KARYAWAN &amp; STAF MOTIVATOR</div>
+    <div class="subtitle"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
 
     <!-- Tabel Master Data Karyawan -->
     <table>
@@ -327,12 +410,17 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 <!-- Blok Tanda Tangan Resmi Kepala Unit -->
 <br><br>
-<table style="border: none;">
+<?php
+$currentCols = ($type === 'presensi') ? 11 : (($type === 'petty_cash') ? 6 : 5);
+$rightCols = ($type === 'presensi') ? 3 : 2;
+$leftCols = max(1, $currentCols - $rightCols);
+?>
+<table style="border: none; width: 100%;">
     <tr style="border: none;">
-        <td style="border: none;"></td>
-        <td style="border: none; text-align: center;" colspan="3">
+        <td style="border: none;" colspan="<?= $leftCols ?>"></td>
+        <td style="border: none; text-align: center;" colspan="<?= $rightCols ?>">
             <?= htmlspecialchars($unitLocationVal) ?>, <?= date('d F Y') ?><br>
-            Kepala Unit biMBA AIUEO,<br><br><br><br>
+            <?= ($type === 'petty_cash') ? 'Bendahara / Kepala Unit' : 'Kepala Unit' ?> biMBA AIUEO,<br><br><br><br>
             <strong>( <?= htmlspecialchars($unitLeaderVal) ?> )</strong>
         </td>
     </tr>
@@ -340,3 +428,13 @@ $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 
 </body>
 </html>
+<?php
+if ($hasLogo) {
+    echo "\r\n--" . $boundary . "\r\n";
+    echo "Content-Location: file:///C:/logo_bimba.png\r\n";
+    echo "Content-Transfer-Encoding: base64\r\n";
+    echo "Content-Type: image/png\r\n\r\n";
+    echo $logoB64 . "\r\n";
+}
+echo "--" . $boundary . "--\r\n";
+?>

@@ -31,7 +31,7 @@ $monthsIndo = [
 ];
 
 // Fetch Dynamic Institution Settings for PDF Kop & Signature
-$unitNameVal = get_system_setting('unit_name', 'biMBA AIUEO Unit Kebanggan');
+$unitNameVal = get_system_setting('unit_name', 'Unit Kebanggan');
 $unitLeaderVal = get_system_setting('unit_leader', 'Siti Rahmawati, S.Pd');
 $unitLocationVal = get_system_setting('unit_location', 'Jakarta');
 $unitAddressVal = get_system_setting('unit_address', 'Jl. Raya Kebanggan No. 12, Jakarta');
@@ -314,14 +314,7 @@ document.addEventListener('click', function(e) {
 <!-- Report Document View -->
 <div class="panel">
     <!-- Official Kop Surat Document Header (Visible ONLY in PDF Print) -->
-    <div class="kop-surat">
-        <div class="kop-logo">B</div>
-        <div class="kop-text">
-            <div class="kop-title"><?= htmlspecialchars(strtoupper($unitNameVal)) ?></div>
-            <div class="kop-subtitle">LEMBAGA Bimbingan Minat Baca dan Belajar Anak</div>
-            <div class="kop-address"><?= htmlspecialchars($unitAddressVal) ?> • Telp: <?= htmlspecialchars($unitPhoneVal) ?> • Email: <?= htmlspecialchars($unitEmailVal) ?></div>
-        </div>
-    </div>
+    <?php require __DIR__ . '/includes/kop_surat.php'; ?>
 
     <div style="margin-bottom: 24px; text-align: center;">
         <h2 style="font-size: 18px; font-weight: 700; text-transform: uppercase;">LAPORAN ARUS KAS KECIL (PETTY CASH)</h2>

@@ -2,6 +2,7 @@
 
 /* Hidden on Screen UI View (Visible ONLY when Printing / PDF Export) */
 .kop-surat,
+.kop-surat-resmi,
 .signature-section,
 .print-only {
     display: none !important;
@@ -109,8 +110,14 @@
 }
 
 
+/* Set Standard A4 Page Margins for Official Print & PDF Export */
+@page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+}
+
 /* ======================================================= */
-/* @media print - Official Full-Bleed & Document Print Engine */
+/* @media print - Official Document Print Engine */
 /* ======================================================= */
 @media print {
     /* Strictly Hide Non-Printable Web UI Elements, Modals & Confirmation Popups */
@@ -127,8 +134,8 @@
     .panel-header,
     .panel-title,
     .id-card-payload,
-    .modal-backdrop,
-    .modal,
+    .modal-backdrop:not(.print-id-card-modal),
+    .modal:not(.print-id-card-modal),
     #globalConfirmModal {
         display: none !important;
     }
@@ -138,10 +145,10 @@
         display: flex !important;
     }
 
-    /* Full Page ID Card Canvas for PDF Export */
+    /* Base Document Print Canvas */
     html, body {
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background-color: #FFFFFF !important;
@@ -156,17 +163,17 @@
         padding: 0 !important;
         margin: 0 !important;
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
     }
 
     .panel {
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
+        padding: 0 2mm !important;
         margin: 0 !important;
         background: transparent !important;
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
     }
 
     /* Modal Backdrop Override - Snap Directly to Top of Page 1 ONLY when printing ID card */
@@ -306,8 +313,127 @@
         print-color-adjust: exact !important;
     }
 
-    /* Official Kop Surat Header Layout */
+    /* Official Kop Surat Header Layout (Standar Kedinasan & Yayasan) */
+    .kop-surat-resmi,
     .kop-surat {
+        display: block !important;
+        width: 100% !important;
+        margin-bottom: 18px !important;
+        page-break-inside: avoid !important;
+    }
+
+    .kop-body {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: static !important;
+        padding-bottom: 4px !important;
+        width: 100% !important;
+    }
+
+    .kop-logo-box {
+        position: static !important;
+        transform: none !important;
+        flex: 0 0 80px !important;
+        width: 80px !important;
+        text-align: center !important;
+    }
+
+    .kop-logo-spacer {
+        flex: 0 0 80px !important;
+        width: 80px !important;
+    }
+
+    .kop-logo-img {
+        max-width: 78px !important;
+        max-height: 82px !important;
+        width: auto !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 auto !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .kop-info-box {
+        flex: 1 !important;
+        width: auto !important;
+        text-align: center !important;
+        padding: 0 10px !important;
+    }
+
+    .kop-yayasan {
+        font-family: Arial, "Times New Roman", sans-serif !important;
+        font-size: 12.5pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.6px !important;
+        color: #000000 !important;
+        line-height: 1.25 !important;
+        margin-bottom: 2px !important;
+    }
+
+    .kop-lembaga {
+        font-family: Arial, "Helvetica Neue", sans-serif !important;
+        font-size: 16pt !important;
+        font-weight: 800 !important;
+        color: #1E3A8A !important;
+        line-height: 1.2 !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 2px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .kop-unit {
+        font-family: Arial, sans-serif !important;
+        font-size: 11.5pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: #000000 !important;
+        line-height: 1.2 !important;
+        margin-bottom: 2px !important;
+    }
+
+    .kop-slogan {
+        font-family: Arial, sans-serif !important;
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+        color: #DC2626 !important;
+        line-height: 1.2 !important;
+        margin-bottom: 4px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .kop-kontak {
+        font-family: Arial, sans-serif !important;
+        font-size: 8.5pt !important;
+        color: #374151 !important;
+        font-style: italic !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Garis Pembatas Ganda Kop Surat (Tebal di atas, Tipis di bawah) */
+    .kop-divider-double {
+        width: 100% !important;
+        margin-top: 6px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .kop-line-thick {
+        border-top: 3px solid #000000 !important;
+        width: 100% !important;
+        margin-bottom: 2px !important;
+    }
+
+    .kop-line-thin {
+        border-top: 1px solid #000000 !important;
+        width: 100% !important;
+    }
+
+    /* Fallback Legacy Kop Surat */
+    .kop-surat:not(.kop-surat-resmi) {
         display: flex !important;
         align-items: center;
         gap: 20px;

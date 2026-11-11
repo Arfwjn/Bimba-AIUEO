@@ -23,6 +23,22 @@ define('APP_VERSION', '1.0.0');
 define('AES_KEY', env('AES_KEY', 'biMBA_AIUEO_SecretKey_2026_AES256'));
 define('AES_METHOD', env('AES_METHOD', 'AES-256-CBC'));
 
+/**
+ * Helper untuk mengambil data URI base64 dari logo resmi biMBA AIUEO
+ * Digunakan untuk embedding pada cetak PDF & Export Microsoft Excel
+ */
+function get_bimba_logo_base64() {
+    static $base64 = null;
+    if ($base64 !== null) return $base64;
+    $path = __DIR__ . '/../assets/img/logo-bimba.png';
+    if (file_exists($path)) {
+        $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($path));
+    } else {
+        $base64 = '';
+    }
+    return $base64;
+}
+
 if (session_status() === PHP_SESSION_NONE && php_sapi_name() !== 'cli') {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
